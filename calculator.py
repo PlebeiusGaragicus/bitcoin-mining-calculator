@@ -2,13 +2,17 @@
 # I stand on the shoulders of giants...
 # https://insights.braiins.com/en/profitability-calculator/
 
+from faulthandler import dump_traceback
 import os
 import json
 import threading
 
 # FOR THE DELETE BUTTON ON THE LIST OF MINERS TABLE
 from functools import partial
+from turtle import pos
 import urllib.request as ur
+
+from pyparsing import col
 
 
 # FAIL GRACEFULLY AND HELP THE USER
@@ -120,32 +124,39 @@ SUBSIDY_HALVING_INTERVAL = 210_000
 
 ### DEFAULT NUMBERS FOR THE USER INPUT FIELDS
 DEFAULT_POOL_FEE = 0 # per-cent (2 == 2%; 0.1 == 0.1%) #TODO change back
-DEFAUL_KPKWH = 0.12 # dollars # TODO CHANGE BACK
-DEFAULT_OPEX = 0 # dollars
+DEFAUL_KPKWH = 0.075 # dollars # TODO CHANGE BACK
+DEFAULT_OPEX = 15 # dollars
 
-DEFAULT_PROJECTIONTIMELINE = 20
-DEFAULT_PRICEGROW = 0.03
-DEFAULT_HASHGROW = 0.06
+DEFAULT_PROJECTIONTIMELINE = 24
+DEFAULT_PRICEGROW = 2
+DEFAULT_HASHGROW = 3
 DEFAULT_THRESHOLD = 1000000
 
 
+# [ EVERY MONTH ]
+KEY_ESTIMATED_HEIGHT = 'height'
+KEY_ESTIMATED_NETWORK_HASHRATE = 'network hashrate'
+KEY_ESTIMATED_PRICE = 'price btc'
+KEY_ESTIMATED_AVGFEE = 'avgfee'
 
-KEY_HEIGHT = 'height'
-KEY_NETWORK_HASHRATE = 'network hashrate'
-KEY_PRICE = 'price btc'
-KEY_TOTAL_COST_ELECTRICITY = 'TOTAL cost electricity'
-KEY_TOTAL_COST_OPERATING = 'TOTAL cost operating'
-KEY_TOTAL_COST_POOLFEE = 'TOTAL cost poolfee'
-KEY_TOTAL_SATS_SOLD = 'TOTAL sats sold'
-KEY_TOTAL_SATS_EARNED = 'TOTAL sats earned'
+KEY_SATS_EARNED = 'earned'
+KEY_SATS_SOLD = 'sold'
+#KEY_SATS_HODLD = 'hodld'
 
+KEY_COST_ELECTRICITY = 'electricity'
+KEY_COST_LOAN = 'loan'
+KEY_COST_OPERATING = 'operating'
+KEY_COST_POOLFEE = 'poolfee'
+
+# CONSTANTS
+KEY_HASH_GROWTH = 'hash growth'
+KEY_PRICE_GROWTH = 'price growth'
 
 
 
 
 def block_subsity( height ):
     return (50 * ONE_HUNDRED_MILLION) >> (height // SUBSIDY_HALVING_INTERVAL)
-
 
 
 ###################
@@ -387,14 +398,18 @@ def query_bitcoinprice() -> float:
 
 
 def user_cost_kWh() -> float:
+    if pin.pin['costkwh'] == None:
+        return None # TODO WHY DID I DO THIS?
     return pin.pin['costkwh']
 
 def user_pool_fee() -> float:
     if pin.pin['poolfee'] == None:
-        return None
+        return None # TODO WHY DID I DO THIS?
     return pin.pin['poolfee'] / 100
 
 def user_opex() -> int:
+    if pin.pin['opex'] == None:
+        return None # TODO WHY DID I DO THIS?
     return pin.pin['opex']
 
 
@@ -415,7 +430,7 @@ def currencyconverter():
         amnt = float(pin.pin["amount"])
         price = float(pin.pin["price"])
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
-        pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:,.2f} satoshi\n" + pin.pin['result']
+        pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
 
     def convert_to_usd():
         amnt = float(pin.pin["amount"])
@@ -482,10 +497,10 @@ def add_miner_dialog():
         THIS MAKES THE POPUP APPEAR AND BLOCKS (waits for user input before continuuing execution)
     """
     result = popup_input([
-        pin.put_input('name', label='name', value='S19J pro pro'),
+        pin.put_input('name', label='name', value='S19'),
         pin.put_input('wattage', label='wattage', type="number", value=3010),
-        pin.put_input('hashrate', label='hashrate (in terahashes)', type="float", value=140),
-        pin.put_input('cost', label='cost', type="float", value=69.69),
+        pin.put_input('hashrate', label='hashrate (in terahashes)', type="float", value=90),
+        pin.put_input('cost', label='cost', type="float", value=18220338.98),
         pin.put_radio("units", label='cost unit', options=["bitcoin", "fiat"], value='bitcoin'),
         pin.put_input('quantity', label='quantity', type="number", value=1)
     ], names=['name', 'wattage', 'hashrate', 'cost', 'units', 'quantity'], title="Enter the details of your miner")
@@ -522,22 +537,22 @@ def add_miner_dialog():
     us.miners.append( result )
 
     # NOTIFY USER OF SUCCESS
-    t = "ADDED:  " + str(result['name']) + "  wattage: " + str(result['wattage']) + "  hashrate: " + str(result['hashrate']) + "   quantity: " + str(result['quantity'])
-    output.toast(t, duration=7)
+    #t = "ADDED:  " + str(result['name']) + "  wattage: " + str(result['wattage']) + "  hashrate: " + str(result['hashrate']) + "   quantity: " + str(result['quantity'])
+    #output.toast(t, duration=7, color='success')
+    output.toast('miner added', color='success', duration=1)
 
     show_miners_list()
     show_results()
     show_settings()
     show_projection()
 
-
 ############################
 def delete_miner( row ):
     del us.miners[ row ]
-    output.toast("miner removed", duration=3)
+    output.toast("miner removed", duration=3, color='warn')
 
+    #show_overhead()
     show_miners_list()
-    show_overhead()
     show_results()
     show_settings()
     show_projection()
@@ -555,12 +570,12 @@ def show_miners_list():
             # SHOW TABLE OF MINERS
             for idx, m in enumerate(us.miners):
                 output.put_table([[
-                    output.put_button(['delete'], onclick=partial(delete_miner, row=idx)),
-                    output.put_text( str(m['name']) ),
-                    output.put_text( "wattage: " + str(m['wattage']) ),
-                    output.put_text( "hashrate: " + str(m['hashrate']) ),
-                    output.put_text( f"cost: {float(m['cost']):,.2f} satoshi\n${usd(float(m['cost'])):,.2f}"),
-                    output.put_text( "quantity: " + str(m['quantity']) )
+                    output.put_button(['delete'], onclick=partial(delete_miner, row=idx), color='danger'),
+                    output.put_text( "name:\n" + str(m['name']) ),
+                    output.put_text( "wattage:\n" + str(m['wattage']) ),
+                    output.put_text( "hashrate:\n" + str(m['hashrate']) ),
+                    output.put_text( f"cost:\nsats: {float(m['cost']):,.2f}\nbtc: {float(m['cost']) / ONE_HUNDRED_MILLION:.2f}\n${usd(float(m['cost'])):,.2f}"),
+                    output.put_text( "quantity:\n" + str(m['quantity']) )
                     ]])
         else:
             output.put_markdown("use the __ADD MINER__ button to add your miners")
@@ -570,13 +585,13 @@ def show_miners_list():
 #############################
 def show_overhead():
     with output.use_scope('overhead', clear=True):
-        if len(us.miners) == 0:
-            return
+        # if len(us.miners) == 0:
+        #     return
 
         # don't know this if network stats are unknown
         # TODO - find a better way to do this
-        if ns.block_height == 0:
-            return
+        # if ns.block_height == 0:
+        #     return
 
         output.put_markdown('# YOUR OVERHEAD')
 
@@ -597,7 +612,7 @@ def show_overhead():
         # OPEX INPUT FIELD
         output.put_row(content=[
             output.put_text('monthly operational cost: $'),
-            pin.put_input('opex', type='float', value= DEFAULT_POOL_FEE),
+            pin.put_input('opex', type='float', value= DEFAULT_OPEX),
             output.put_button("Update", onclick=recalculate)
         ])
 
@@ -688,10 +703,10 @@ def pretty_graph(res):
 
     fig.add_trace(
         go.Scatter(
-            x=[*range( len(res[KEY_NETWORK_HASHRATE]) )],
+            x=[*range( len(res[KEY_ESTIMATED_NETWORK_HASHRATE]) )],
             # this magic just takes each element and divides..
             # so the units are now exahash and the numbers on the graph are such the more prettier...mmm ok?
-            y=[e / MEGAHASH for e in res[KEY_NETWORK_HASHRATE]],
+            y=[e / MEGAHASH for e in res[KEY_ESTIMATED_NETWORK_HASHRATE]],
             name="network hashrate"
         ))
     # fig.add_trace(
@@ -704,33 +719,102 @@ def pretty_graph(res):
     fig.update_layout(barmode='stack')
     return fig.to_html(include_plotlyjs="require", full_html=False)
 
+def hashfuck( v: float ):
+    pin.pin['hashgrow'] = round(v, 2)
+    show_projection()
 
-
+def pricefuck( v: float ):
+    pin.pin['pricegrow'] = round(v, 2)
+    show_projection()
 
 ##########################
 def show_graph(res):
     with output.use_scope("graph", clear=True):
         output.put_html( pretty_graph(res) )
-        output.put_markdown('---')
 
+##########################
+def show_table(res):
+    verbose = bool(pin.pin['verbose'])
+
+    print("verbose:", verbose)
+    # https://docs.python.org/3/library/string.html
+
+# 1       2              3                             4
+    str_table = """
+| month | block height | network hashrate (exahash) | btc price |
+| :--- | ---: | ---: | ---: |
+"""
+# 1       2      3      4   
+
+
+                            #    1    2    3    4 
+    str_table_row_format = """| %s | %s | %s | %s |"""
+
+# KEY_ESTIMATED_HEIGHT : [],
+# KEY_ESTIMATED_NETWORK_HASHRATE : [],
+# KEY_ESTIMATED_PRICE : [],
+# KEY_ESTIMATED_AVGFEE : [],
+# KEY_ESTIMATED_REWARD
+# KEY_SATS_EARNED : [],
+# KEY_SATS_SOLD : [],
+# KEY_SATS_HODLD : [],
+# KEY_COST_ELECTRICITY : [],
+# KEY_COST_LOAN : [],
+# KEY_COST_OPERATING : [],
+# KEY_COST_POOLFEE : [],
+
+    for mdx in range(len(res[KEY_ESTIMATED_HEIGHT])):
+        str_table += str_table_row_format % ( \
+            f"{mdx + 1}",
+            f"{res[KEY_ESTIMATED_HEIGHT][mdx]:,}",
+            f"{res[KEY_ESTIMATED_NETWORK_HASHRATE][mdx]/MEGAHASH:,.2f}",
+            f"{res[KEY_ESTIMATED_PRICE][mdx]:,.2f}",
+        )
+        str_table += '\n'
+    
+    # TODO - THE STORY
+    # story = "Your strategy is to " + pin.pin['strategy'] + ".  "
+    # story += "This means, once you have earned " + str(selling_threshold) + " sats, your can withdrawal them from your mining pool and sell or hold on to them.  "
+
+    # total = str(int(_cost_electricity[0] + _cost_operating[0]))
+
+    # if pin.pin['strategy'] == USER_STRATEGY_1:
+    #     story += "You've decided to sell only enough sats to cover the $" +  total + " monthly expenses you have."
+
+    # if pin.pin['strategy'] == USER_STRATEGY_2:
+    #     story += "You've decided to not sell your bitcoin.  You are going to HODL.  So when it comes to the monthly expense... how will you pay your monthly bills of $" + total + "?..."  
+
+    # if pin.pin['strategy'] == USER_STRATEGY_3:
+    #     story += "You've decided to sell ALL the bitcoin you withdrawal and roll in stead money coming your way."
+
+    with output.use_scope("table", clear=True):
+        #output.put_text( story )
+        output.put_markdown("""# Monthly Breakdown""")
+        output.put_markdown( str_table )
+        output.put_table(tdata=[[
+                output.put_text("Download results as CSV file -->"),
+                output.put_file('projection.csv', content=b'123,456,789')
+            ]])
 
 
 ##########################
 def calculate_projection(months, hashgrow, pricegrow):
-
+    output.toast("re-calculating...", color='warn', duration=1)
     res = {
-        KEY_HEIGHT : [], #HEIGHT AT THE END OF THE MONTH!
-        KEY_NETWORK_HASHRATE : [], #... AT THE END OF THE MONTH!!
-        KEY_PRICE : [], # ... AT THE FUCKING END OF THE MONTH... OK/!
-        KEY_TOTAL_COST_ELECTRICITY : 0,
-        KEY_TOTAL_COST_OPERATING : 0,
-        #KEY_TOTAL_COST_POOLFEE : 0,
-        KEY_TOTAL_SATS_SOLD : 0,
-        KEY_TOTAL_SATS_EARNED : 0
-        # network growth?
-        # price growth?
-        # average fee
-        # num months
+        KEY_ESTIMATED_HEIGHT : [], #HEIGHT AT THE END OF THE MONTH!
+        KEY_ESTIMATED_NETWORK_HASHRATE : [], #... AT THE END OF THE MONTH!!
+        KEY_ESTIMATED_PRICE : [], # ... AT THE FUCKING END OF THE MONTH... OK/!
+        KEY_ESTIMATED_AVGFEE : [],
+        KEY_SATS_EARNED : [],
+        KEY_SATS_SOLD : [],
+        #KEY_SATS_HODLD : [],
+        KEY_COST_ELECTRICITY : [],
+        KEY_COST_LOAN : [],
+        KEY_COST_OPERATING : [],
+        KEY_COST_POOLFEE : [],
+
+        KEY_HASH_GROWTH : hashgrow,
+        KEY_PRICE_GROWTH : pricegrow
     }
 
     _blk = ns.block_height
@@ -763,17 +847,17 @@ def calculate_projection(months, hashgrow, pricegrow):
 
             # DO A WHOLE DAY AT A TIME
             else:
-                print("")
-                print("we will NOT cross a halvening")
-                print("calculating one day : at block ", _blk)
-                print("days until next halvening:", blocks_until_halvening(_blk ))
+                #print("")
+                #print("we will NOT cross a halvening")
+                #print("calculating one day : at block ", _blk)
+                #print("days until next halvening:", blocks_until_halvening(_blk ))
 
                 reward = block_subsity( _blk ) + ns.fee_average
                 rawreward = reward * us.total_terahash() / _nh
 
                 _total_earn += rawreward * (1 - user_pool_fee()) * EXPECTED_BLOCKS_PER_DAY
                 #_total_poolfee += rawreward * user_pool_fee()
-                _cost_elec += 3 * user_cost_kWh() * us.total_wattage() / 125
+                _cost_elec += 24 * user_cost_kWh() * us.total_wattage() / 1000
 
                 _blk += EXPECTED_BLOCKS_PER_DAY
 
@@ -785,21 +869,31 @@ def calculate_projection(months, hashgrow, pricegrow):
         # END ############ DAY BY DAY
 
         # now we have to settle
-        need_to_sell = btc( _cost_elec + user_opex(), price=_price)
+        sell_for_electricity = btc( _cost_elec, price=_price )
+        sell_for_operating = btc( user_opex(), price=_price )
+        #sell_for_loan = btc( 100, price=_price )
+
+        need_to_sell = sell_for_electricity + sell_for_operating #+ sell_for_loan
 
         # we have calculated the month...
-        res[KEY_HEIGHT].append( _blk )
-        res[KEY_NETWORK_HASHRATE].append( _nh )
-        res[KEY_PRICE].append( _price )
 
-        res[KEY_TOTAL_COST_ELECTRICITY] += _cost_elec
-        res[KEY_TOTAL_COST_OPERATING] += user_opex()
-        #res[KEY_TOTAL_COST_POOLFEE] += _total_poolfee
-        res[KEY_TOTAL_SATS_SOLD] += need_to_sell
-        res[KEY_TOTAL_SATS_EARNED] += _total_earn
+        res[KEY_ESTIMATED_HEIGHT].append( _blk )
+        res[KEY_ESTIMATED_NETWORK_HASHRATE].append( _nh )
+        res[KEY_ESTIMATED_PRICE].append( _price )
+        res[KEY_ESTIMATED_AVGFEE].append( -1 ) #TODO
+
+        res[KEY_COST_ELECTRICITY].append(sell_for_electricity)
+        res[KEY_COST_OPERATING].append(sell_for_operating)
+        #res[KEY_COST_POOLFEE].append(-1)
+        res[KEY_COST_LOAN].append( 0 )
+
+        res[KEY_SATS_EARNED].append(_total_earn)
+        res[KEY_SATS_SOLD].append(need_to_sell)
+        #res[KEY_SATS_HODLD].append(_total_earn - need_to_sell)
 
     # END ################ MONTH BY MONTH
 
+    output.toast("done.", color='success', duration=1)
     return res
 
 
@@ -812,8 +906,11 @@ def graph_play(val):
         we have to recompute everything with the new value for network hashrate growth
         then we show the graph again
     """
-    months = pin.pin['months']
-    pricegrow = pin.pin['pricegrow']
+    
+    val /= 100
+    months = pin.pin['months'] / 100
+    pricegrow = pin.pin['pricegrow'] / 100
+
     #TODO SANITIZE all these below.. do a better job
     if None in [months, pricegrow]:
         output.toast("missing projection parameters...")
@@ -834,83 +931,85 @@ def show_projection():
         Aww yis
     """
     # TODO find a better way
-    if ns.block_height == 0:
-        return
+    # if ns.block_height == 0:
+    #     return
 
     if len(us.miners) < 1:
-        output.clear('projection')
+        output.toast("You have no miners", color='error')
         output.clear('graph')
+        output.clear('projection')
+        output.clear('table')
         return
 
-
-    # https://docs.python.org/3/library/string.html
-    str_table = \
-"""| month | block height | network hashrate (exahash) | btc price | ? |
-| :--- | ---: | ---: | ---: | ---: |
-"""
-
-    #str_table_row_format = """| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |"""
-    str_table_row_format = """| %s | %s | %s | %s | %s |"""
-
-    #TODO SANITIZE all these below - do a better job
     months = pin.pin['months']
-    hashgrow = pin.pin['hashgrow']
-    pricegrow = pin.pin['pricegrow']
-    selling_threshold = pin.pin['threshold']
+    hashgrow = pin.pin['hashgrow'] / 100
+    pricegrow = pin.pin['pricegrow'] / 100
+    #selling_threshold = pin.pin['threshold']
 
-    if None in [months, selling_threshold, pricegrow, hashgrow]:
+    #TODO SANITIZE INPUT - do a better job
+    if None in [months, pricegrow, hashgrow]:
         output.toast("missing projection parameters...")
         return
-    
+
     res = calculate_projection(months, hashgrow, pricegrow)
-
-    for mdx in range(months):
-        str_table += str_table_row_format % ( \
-            mdx + 1,
-            f"{res[KEY_HEIGHT][mdx]:,}",
-            f"{res[KEY_NETWORK_HASHRATE][mdx]/MEGAHASH:,.2f}",
-            f"{res[KEY_PRICE][mdx]:,.2f}",
-            "-1"
-            )
-        str_table += '\n'
-
-    # TODO - THE STORY
-    # story = "Your strategy is to " + pin.pin['strategy'] + ".  "
-    # story += "This means, once you have earned " + str(selling_threshold) + " sats, your can withdrawal them from your mining pool and sell or hold on to them.  "
-
-    # total = str(int(_cost_electricity[0] + _cost_operating[0]))
-
-    # if pin.pin['strategy'] == USER_STRATEGY_1:
-    #     story += "You've decided to sell only enough sats to cover the $" +  total + " monthly expenses you have."
-
-    # if pin.pin['strategy'] == USER_STRATEGY_2:
-    #     story += "You've decided to not sell your bitcoin.  You are going to HODL.  So when it comes to the monthly expense... how will you pay your monthly bills of $" + total + "?..."  
-
-    # if pin.pin['strategy'] == USER_STRATEGY_3:
-    #     story += "You've decided to sell ALL the bitcoin you withdrawal and roll in stead money coming your way."
 
     # PRINT EVERYTHING TO THE SCREEN...
     with output.use_scope('projection', clear=True):
-        output.put_markdown( "# PROJECTED RESULTS:" )
-        #output.put_text( story )
-        output.put_markdown( str_table )
-        output.put_table(tdata=[[
-                output.put_text("Download results as CSV file -->"),
-                output.put_file('projection.csv', content=b'123,456,789')
-            ]])
-        output.put_markdown( "## PROJECTION SUMMARY:" )
-        output.put_text(f"You have earned {res[KEY_TOTAL_SATS_EARNED]:,.2f} sats / ${usd(res[KEY_TOTAL_SATS_EARNED]):,.2f}")
-        output.put_text(f"Over a time period of {months} months, I predict you will spend:")
-        output.put_text(f"{us.total_capex() } satoshi / ${ usd(us.total_capex() )} on equipment")
-        output.put_text(f"{ btc(user_opex(), price=ns.price_bitcoin*2)} satoshi on OPEX / month") # todo - debug (* 2)
+        output.put_markdown( "# PROJECTION SUMMARY:" )
 
-        output.put_markdown('---')
-        pin.put_slider("play_with_growth", label="play with hash rate growth (remember: a rate of 0.06 is a doubling every year)", value=pin.pin['hashgrow'],min_value=-0.01, max_value=0.1, step=0.01 )
-        pin.pin_on_change('play_with_growth', onchange=graph_play, clear=False, init_run=False)
+# KEY_ESTIMATED_HEIGHT : [],
+# KEY_ESTIMATED_NETWORK_HASHRATE : [],
+# KEY_ESTIMATED_PRICE : [],
+# KEY_ESTIMATED_AVGFEE : [],
+# KEY_SATS_EARNED : [],
+# KEY_SATS_SOLD : [],
+# KEY_SATS_HODLD : [],
+
+# KEY_COST_ELECTRICITY : [],
+# KEY_COST_LOAN : [],
+# KEY_COST_OPERATING : [],
+# KEY_COST_POOLFEE : [],
+
+        total_earned = 0
+        for i in res[KEY_SATS_EARNED]:
+            total_earned += i
+
+        total_equipment = us.total_capex()
+
+        total_opex = 0
+        for i in res[KEY_COST_OPERATING]:
+            total_opex += i
+        
+        total_elec = 0
+        for i in res[KEY_COST_ELECTRICITY]:
+            total_elec += i
+
+        total_loan = 0
+        for i in res[KEY_COST_LOAN]:
+            total_loan += i
+
+        #total_sold = us.total_capex()
+        total_sold = 0
+        for i in res[KEY_SATS_SOLD]:
+            total_sold += i
+        
+        total_hodld = total_earned - total_sold - total_equipment
+
+        ending_price = res[KEY_ESTIMATED_PRICE][-1]
+        output.put_table([
+                ["initial investment", f"{total_equipment :,.2f} sats on equipment"],
+                ["you will sell", f"{total_elec :,.2f} sats - electricity"],
+                ["you will sell", f"{total_opex :,.2f} sats - operating"],
+                ["you will sell", f"{total_loan :,.2f} sats - loans"],
+                ["TOTAL sold", f"{total_sold :,.2f} sats"],
+                ["TOTAL", f"{total_sold + total_equipment:,.2f} sats"],
+                ['---', ''],
+                ["you will earn", f"{total_earned:,.2f} sats"],
+                ["you will HODL", f"{total_hodld:,.2f} sats / ${usd(total_hodld, price=ending_price):,.2f}"],
+            ])
 
     show_graph(res)
-
-
+    show_table( res )
 
 #######################
 def show_settings():
@@ -920,27 +1019,35 @@ def show_settings():
 
         output.put_markdown("# PROJECTED EARNINGS")
         pin.put_checkbox('verbose', options=['VERBOSE MODE - (put every variable on the spreadsheet)'], inline=True)
+
         # MONTHS
         output.put_row(content=[
             output.put_text('Months to project'),
             pin.put_input('months', type='float', value=DEFAULT_PROJECTIONTIMELINE)
         ])
+
+        output.put_text("(remember: 6% = yearly doubling)")
         output.put_row(content=[
-            output.put_text('Estimated MONTHLY network hashrate growth:   %'),
-            pin.put_input('hashgrow', type='float', value=DEFAULT_HASHGROW)
+            output.put_text('Monthly hashrate growth: %'),
+            pin.put_input('hashgrow', type='float', value=DEFAULT_HASHGROW, readonly=True),
+            pin.put_slider("play_with_growth", value=DEFAULT_HASHGROW,min_value=-2.0, max_value=10.0, step=0.1 )
         ])
+        pin.pin_on_change('play_with_growth', onchange=hashfuck, clear=False, init_run=False)
+
         output.put_row(content=[
-            output.put_text('Estimated MONTHLY bitcoin price growth:   %'),
-            pin.put_input('pricegrow', type='float', value=DEFAULT_PRICEGROW)
+            output.put_text('Monthly price growth: %'),
+            pin.put_input('pricegrow', type='float', value=DEFAULT_PRICEGROW, readonly=True),
+            pin.put_slider("price_growth_slider", value=DEFAULT_PRICEGROW,min_value=-10.0, max_value=20.0, step=0.1 )
         ])
-        output.put_row(content=[
-            output.put_text('selling threshold:   (satoshi)'),
-            pin.put_input('threshold', type='float', value=DEFAULT_THRESHOLD)
-        ])
-        output.put_row(content=[
-            output.put_text("selling strategy"),
-            pin.put_select("strategy", options=[USER_STRATEGY_1, USER_STRATEGY_2, USER_STRATEGY_3], value='sell only to cover expense')
-        ])
+        pin.pin_on_change('price_growth_slider', onchange=pricefuck, clear=False, init_run=False)
+        # output.put_row(content=[
+        #     output.put_text('selling threshold:   (satoshi)'),
+        #     pin.put_input('threshold', type='float', value=DEFAULT_THRESHOLD)
+        # ])
+        # output.put_row(content=[
+        #     output.put_text("selling strategy"),
+        #     pin.put_select("strategy", options=[USER_STRATEGY_1, USER_STRATEGY_2, USER_STRATEGY_3], value='sell only to cover expense')
+        # ])
         output.put_button( 're-calculate', onclick=show_projection )
 
 
@@ -985,14 +1092,10 @@ def get_stats_from_internet() -> bool:
         f = get_average_block_fee_from_internet(nBlocks=1) # TODO - DEBUG ONLY
     except:
         output.toast("Could not download network status.", color='error', duration=7)
-        #output.clear('internet')
         return False
 
-    #ns.update(price=p, height=h, avg_fee=f, diff=d, est_hr=hr)
     ns.update(price=p, height=h, avg_fee=f, nethashps=nh)
-    #output.clear(scope='internet')
     
-    #show_all()
     return True
 
 
@@ -1061,27 +1164,12 @@ def recalculate():
     """
 
     if user_cost_kWh() == None or user_pool_fee() == None or user_opex() == None:
-        output.toast("can't leave input field blank")
+        output.toast("can't leave input field blank", color='error')
         return
 
-    #show_network()
-    #show_overhead()
-    #show_miners_list()
     show_results()
-    #show_settings()
     show_projection()
 
-
-
-
-#####################
-def show_all():
-    show_network()
-    show_miners_list()
-    show_overhead()
-    show_results()
-    show_settings()
-    show_projection()
 
 
 
@@ -1101,17 +1189,20 @@ def main():
     with output.use_scope('main', clear=True):
         output.put_markdown( MAIN_TEXT )
         #output.put_collapse("websites that I found to be helpful:", content=[output.put_markdown(WEBSITES_THAT_HELPED)])])
-        output.put_collapse("TOOLS:", content=[output.put_button("USD - BTC converter", onclick=currencyconverter)])
-
+        output.put_collapse("TOOLS:", content=[output.put_button("USD - BTC converter", onclick=currencyconverter)], open=True)
     
     with output.use_scope('init', clear=True):
 
         path = useful_node()
 
         if path != None:
+            output.put_text("Getting data from node...", scope='init')
+
             h = node_blockheight(path)
             f = node_avgblockfee(path, nBlocks=2)
             nh = node_networkhashps(path)
+            
+            output.put_text("Getting price of bitcoin...", scope='init')
             p = query_bitcoinprice()
 
             if p == -1:
@@ -1126,17 +1217,13 @@ def main():
                     output.toast("FUCK... quitting")
                     exit(1)
 
-
-
-        # TODO DEBUG this is the easier way because the price of 
-        #us.miners.append({"name":"S9","wattage":999,"hashrate":12,"cost":btc(500),"quantity":1})
-        us.miners.append({"name":"S19","wattage":3050,"hashrate":90,"cost":18220338,"quantity":1})
+        #us.miners.append({"name":"S19","wattage":3050,"hashrate":90,"cost":18220338,"quantity":1})
         # 18220338.98 sats
 
-
         output.clear(scope='init')
-        show_all()
-
+        show_network()
+        show_overhead()
+        show_miners_list()
 
 #############################
 if __name__ == '__main__':
