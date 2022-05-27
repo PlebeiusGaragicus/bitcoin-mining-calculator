@@ -211,7 +211,7 @@ us = userState()
 ns = networkState()
 
 # TODO - DEBUG ONLY
-us.miners.append({"name":"S9","wattage":999,"hashrate":12,"cost":500,"quantity":1})
+#us.miners.append({"name":"S9","wattage":999,"hashrate":12,"cost":500,"quantity":1})
 
 
 
@@ -406,9 +406,39 @@ def user_opex() -> int:
 
 
 
+##############################
+def currencyconverter():
+    def updateprice():
+        pin.pin['price'] = query_bitcoinprice()
 
+    def convert_to_sat():
+        amnt = float(pin.pin["amount"])
+        price = float(pin.pin["price"])
+        r = float(ONE_HUNDRED_MILLION * (amnt / price))
+        pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:,.2f} satoshi\n" + pin.pin['result']
 
+    def convert_to_usd():
+        amnt = float(pin.pin["amount"])
+        price = float(pin.pin["price"])
+        r = amnt * (price / ONE_HUNDRED_MILLION)
+        pin.pin["result"] = f"{amnt:,.2f} sats @ ${price:,.2f} = ${r:,.2f}\n" + pin.pin['result']
 
+    output.popup('USD - BTC converter', content=[
+        output.put_row(content=[
+            output.put_column(content=[
+                pin.put_input("price", type="float", label="Price of bitcoin:", value=query_bitcoinprice()),
+                output.put_button("refresh price", onclick=updateprice)
+                ]),
+            output.put_column(content=[
+                pin.put_input("amount", type="float", label="Amount to convert"),
+                output.put_column(content=[
+                    output.put_button("sats -> dollars", onclick=convert_to_usd),
+                    output.put_button("dollars -> sats", onclick=convert_to_sat)
+                    ])
+                ])
+        ]),
+        pin.put_textarea("result", label="Result:", value="", readonly=True)
+    ], closable=True)
 
 
 ###################################### THIS FUNCTION ROCKS!!!!!!!!! SAVE THIS!!!!!!!
@@ -507,6 +537,7 @@ def delete_miner( row ):
     output.toast("miner removed", duration=3)
 
     show_miners_list()
+    show_overhead()
     show_results()
     show_settings()
     show_projection()
@@ -518,7 +549,7 @@ def show_miners_list():
         return
 
     with output.use_scope( 'mine', clear=True):
-        output.put_markdown('# YOUR MINERS')
+        output.put_markdown('# YOUR MINING EQUIPMENT')
 
         if len(us.miners) > 0:
             # SHOW TABLE OF MINERS
@@ -528,7 +559,7 @@ def show_miners_list():
                     output.put_text( str(m['name']) ),
                     output.put_text( "wattage: " + str(m['wattage']) ),
                     output.put_text( "hashrate: " + str(m['hashrate']) ),
-                    output.put_text( f"cost: {float(m['cost']):,.2f} satoshi"),
+                    output.put_text( f"cost: {float(m['cost']):,.2f} satoshi\n${usd(float(m['cost'])):,.2f}"),
                     output.put_text( "quantity: " + str(m['quantity']) )
                     ]])
         else:
@@ -538,11 +569,15 @@ def show_miners_list():
 
 #############################
 def show_overhead():
-    # don't know this if network stats are unknown
-    if ns.block_height == 0:
-        return
-
     with output.use_scope('overhead', clear=True):
+        if len(us.miners) == 0:
+            return
+
+        # don't know this if network stats are unknown
+        # TODO - find a better way to do this
+        if ns.block_height == 0:
+            return
+
         output.put_markdown('# YOUR OVERHEAD')
 
         # COST PER KWH INPUT FIELD
@@ -563,13 +598,6 @@ def show_overhead():
         output.put_row(content=[
             output.put_text('monthly operational cost: $'),
             pin.put_input('opex', type='float', value= DEFAULT_POOL_FEE),
-            # Rent and utilities
-            # Wages and salaries
-            # Accounting and legal fees
-            # Overhead costs such as selling, general, and administrative expenses (SG&A)
-            # Property taxes
-            # Business travel
-            # Interest paid on debt
             output.put_button("Update", onclick=recalculate)
         ])
 
@@ -596,7 +624,7 @@ def show_network():
         #output.put_markdown("- Current difficulty is __" + str( ns.difficulty ) + "__ and will be adjusted in __" + "XXX" + "__ blocks (YYY days)")
         #output.put_markdown("- Current difficulty is __WHOTHEFUCKCARES__ and will be adjusted in __" + "XXX" + "__ blocks (YYY days)")
         output.put_button( 'Adjust network numbers', onclick=get_stats_from_user )
-        output.put_collapse("explain this...", content=[output.put_markdown(EXPLAIN_NETWORK)])
+        #output.put_collapse("explain this...", content=[output.put_markdown(EXPLAIN_NETWORK)])
 
 ###########################
 def show_results():
@@ -616,18 +644,20 @@ def show_results():
         ppps = int(cost / s10 * ONE_HUNDRED_MILLION) #price paid per satoshi
         discount = int((1 - (ppps / ns.price_bitcoin)) * 100)
 
-        output.put_markdown('# PROFITABILITY')
-        output.put_markdown('## COST OF PRODUCTION')
-        output.put_markdown("- Every 10 minutes you use __" + f'{kWh:,.3f}' + "__ kilowatt-hours, which costs __$" +f'{cost:,.2f}' + "__")
-        output.put_markdown("- This will cost __$" +f'{(cost * EXPECTED_BLOCKS_PER_DAY):,.2f}' + "__ every day / __$" + f'{(cost * EXPECTED_BLOCKS_PER_DAY * 30):,.2f}' + "__ every month")
-        output.put_collapse("explain this...", content=[output.put_markdown( EXPLAIN_EXPENSE )])
+        output.put_markdown('# INSTANT PROFIT / LOSS')
+        
         output.put_markdown('## EARNINGS')
         output.put_markdown("- Your Bitcoin miners contribute __" + f'{share:,.10f}' + "%__ of the total network hash rate")
         output.put_markdown("- Every 10 minutes you should earn an average of __" + f'{rawreward:,.0f}' + "__ satoshi / __$" + f'{ usd(rawreward):,.3f}' + "__")
         output.put_markdown("- Subtract a " + f'{user_pool_fee() * 100:,.2f}' + "% pool fee of " + f'{user_pool_fee() * rawreward:,.0f}' + " satoshi leaves __" + f'{s10:,.0f}' + "__ satoshi / __$" + f'{ usd(s10):,.3f}' + "__") #WARNING.. ROUNDING BY INT CAST
         output.put_markdown("- This will earn __$" + f'{value*EXPECTED_BLOCKS_PER_DAY:,.2f}' + "__ every day / __$" + f'{value*EXPECTED_BLOCKS_PER_DAY*30:,.2f}' + "__ every month")
-        output.put_collapse("explain this...", content=[output.put_markdown( EXPLAIN_REWARD )])
-        # TODO - ADD CAPEX, OPEX
+        #output.put_collapse("explain this...", content=[output.put_markdown( EXPLAIN_REWARD )])
+
+        output.put_markdown('## COST OF PRODUCTION')
+        output.put_markdown("- Every 10 minutes you use __" + f'{kWh:,.3f}' + "__ kilowatt-hours, which costs __$" +f'{cost:,.2f}' + "__")
+        output.put_markdown("- This will cost __$" +f'{(cost * EXPECTED_BLOCKS_PER_DAY):,.2f}' + "__ every day / __$" + f'{(cost * EXPECTED_BLOCKS_PER_DAY * 30):,.2f}' + "__ every month")
+        #output.put_collapse("explain this...", content=[output.put_markdown( EXPLAIN_EXPENSE )])
+
         output.put_markdown('## PROFIT / LOSS')
         if value > cost:
             word = 'profit'
@@ -638,7 +668,7 @@ def show_results():
         
         output.put_markdown("Your net " + word + " to mine per day: __$" + f'{(value-cost)*EXPECTED_BLOCKS_PER_DAY:,.2f}' + "__ / month: __$" + f'{(value-cost)*EXPECTED_BLOCKS_PER_DAY*30:,.2f}' + "__")
         output.put_markdown("Your \'instant\' cost to mine one bitcoin is __$" + f'{ppps:,}' + "__ versus a market price of __$" + f'{ns.price_bitcoin:,}' + "__")
-        output.put_collapse("explain this...", content=[output.put_markdown( EXPLAIN_PROFITLOSS )])
+        #output.put_collapse("explain this...", content=[output.put_markdown( EXPLAIN_PROFITLOSS )])
 
 
 
@@ -815,13 +845,12 @@ def show_projection():
 
     # https://docs.python.org/3/library/string.html
     str_table = \
-"""| month | block height | network hashrate (exahash) | btc price | -1 |
+"""| month | block height | network hashrate (exahash) | btc price | ? |
 | :--- | ---: | ---: | ---: | ---: |
 """
 
     #str_table_row_format = """| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |"""
     str_table_row_format = """| %s | %s | %s | %s | %s |"""
-
 
     #TODO SANITIZE all these below - do a better job
     months = pin.pin['months']
@@ -869,7 +898,8 @@ def show_projection():
                 output.put_text("Download results as CSV file -->"),
                 output.put_file('projection.csv', content=b'123,456,789')
             ]])
-        output.put_markdown( "# BOTTOM LINE:" )
+        output.put_markdown( "## PROJECTION SUMMARY:" )
+        output.put_text(f"You have earned {res[KEY_TOTAL_SATS_EARNED]:,.2f} sats / ${usd(res[KEY_TOTAL_SATS_EARNED]):,.2f}")
         output.put_text(f"Over a time period of {months} months, I predict you will spend:")
         output.put_text(f"{us.total_capex() } satoshi / ${ usd(us.total_capex() )} on equipment")
         output.put_text(f"{ btc(user_opex(), price=ns.price_bitcoin*2)} satoshi on OPEX / month") # todo - debug (* 2)
@@ -888,7 +918,7 @@ def show_settings():
         if len(us.miners) == 0:
             return
 
-        output.put_markdown("# PREDICT THE FUTURE")
+        output.put_markdown("# PROJECTED EARNINGS")
         pin.put_checkbox('verbose', options=['VERBOSE MODE - (put every variable on the spreadsheet)'], inline=True)
         # MONTHS
         output.put_row(content=[
@@ -912,7 +942,6 @@ def show_settings():
             pin.put_select("strategy", options=[USER_STRATEGY_1, USER_STRATEGY_2, USER_STRATEGY_3], value='sell only to cover expense')
         ])
         output.put_button( 're-calculate', onclick=show_projection )
-
 
 
 
@@ -1048,11 +1077,12 @@ def recalculate():
 #####################
 def show_all():
     show_network()
-    show_overhead()
     show_miners_list()
+    show_overhead()
     show_results()
     show_settings()
     show_projection()
+
 
 
 #############
@@ -1071,6 +1101,8 @@ def main():
     with output.use_scope('main', clear=True):
         output.put_markdown( MAIN_TEXT )
         #output.put_collapse("websites that I found to be helpful:", content=[output.put_markdown(WEBSITES_THAT_HELPED)])])
+        output.put_collapse("TOOLS:", content=[output.put_button("USD - BTC converter", onclick=currencyconverter)])
+
     
     with output.use_scope('init', clear=True):
 
@@ -1094,6 +1126,14 @@ def main():
                     output.toast("FUCK... quitting")
                     exit(1)
 
+
+
+        # TODO DEBUG this is the easier way because the price of 
+        #us.miners.append({"name":"S9","wattage":999,"hashrate":12,"cost":btc(500),"quantity":1})
+        us.miners.append({"name":"S19","wattage":3050,"hashrate":90,"cost":18220338,"quantity":1})
+        # 18220338.98 sats
+
+
         output.clear(scope='init')
         show_all()
 
@@ -1101,5 +1141,3 @@ def main():
 #############################
 if __name__ == '__main__':
     pywebio.start_server(main, port=8080, debug=True)
-
-    #print("$100 to btc:", btc(35000, price=35000))
