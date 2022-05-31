@@ -203,17 +203,17 @@ class userState:
     def total_wattage(self):
         w = 0
         for m in self.miners:
-            w += m["wattage"] * m["quantity"]
+            w += m["wattage"]# * m["quantity"]
         return w
     def total_capex(self):
         c = 0
         for m in self.miners:
-            c += m["cost"] * m["quantity"]
+            c += m["cost"]# * m["quantity"]
         return c
     def total_terahash(self):
         t = 0
         for m in self.miners:
-            t += (m["hashrate"]) * m["quantity"]
+            t += (m["hashrate"])# * m["quantity"]
         return t
 #####################
 class networkState:
@@ -603,7 +603,9 @@ def pricehistory():
     output.toast("not implemented yet... sorry")
 
 ###################################### THIS FUNCTION ROCKS!!!!!!!!! SAVE THIS!!!!!!!
-def popup_input(pins, names, title):
+#def popup_input(pins, names, title):
+# onchangepinname='examples', onchange=changeentries)
+def popup_input(pins, names, title, onchangepinname=None, callback=None):
     """
         Show a form in popup window.
         :param list pins: pin output list.
@@ -627,6 +629,9 @@ def popup_input(pins, names, title):
         {'label': 'Cancel', 'value': False, 'color': 'danger'},
     ], onclick=onclick))
     output.popup(title=title, content=pins, closable=False)
+    
+    if not onchangepinname == None:
+        pin.pin_on_change(onchangepinname, onchange=callback)
 
     event.wait()
     output.close_popup()
@@ -643,22 +648,23 @@ def add_miner_dialog():
         THIS MAKES THE POPUP APPEAR AND BLOCKS (waits for user input before continuuing execution)
     """
     result = popup_input([
-        pin.put_input('name', label='name', value='S19'),
+        #pin.put_input('name', label='name', value='S19'),
         pin.put_input('wattage', label='wattage', type="number", value=3010),
         pin.put_input('hashrate', label='hashrate (in terahashes)', type="float", value=90),
         pin.put_input('cost', label='cost', type="float", value=18220338.98),
         pin.put_radio("units", label='cost unit', options=["bitcoin", "fiat"], value='bitcoin'),
         pin.put_input('quantity', label='quantity', type="number", value=1)
-    ], names=['name', 'wattage', 'hashrate', 'cost', 'units', 'quantity'], title="Enter the details of your miner")
+    #], names=['name', 'wattage', 'hashrate', 'cost', 'units', 'quantity'], title="Enter the details of your miner")
+    ], names=['wattage', 'hashrate', 'cost', 'units'], title="Enter the details of your miner")
 
     # USER HIT CANCEL
     if result == None:
         return
 
     # VERIFY USER INPUT
-    if result['name'] == None or len(result['name']) > 50:
-        output.toast("invalid name - no miners added")
-        return
+    # if result['name'] == None or len(result['name']) > 50:
+    #     output.toast("invalid name - no miners added")
+    #     return
     if result['wattage'] == None or result['wattage'] <= 0:
         output.toast("invalid wattage - no miners added")
         return
@@ -694,6 +700,84 @@ def add_miner_dialog():
 
     #show_settings() # we only call this function once.....
     show_projection() # AUTO-RUN THE CALCULATION WHEN SOMEONE ADDS A MINER!  <3 SAVES A MOUSE CLICK
+
+
+def changeentries(option):
+    """
+        This is the callback for the "examples" drop-down pin
+        When the user clicks an example miner stat, this changes the input boxes in the pop up
+        Just makes things easier to use, ya bish?
+    """
+    if option == 'S19 (3050 watts / 90 TH)':
+        pin.pin['wattage'] = 3050
+        pin.pin['hashrate'] = 90
+    if option == 'S9 (1300 watts / 13.5 TH)':
+        pin.pin['wattage'] = 1300
+        pin.pin['hashrate'] = 13.5
+    if option == '-':
+        pin.pin['wattage'] = 0
+        pin.pin['hashrate'] = 0
+
+
+##########################
+def add_miner_to_analyze_dialog():
+
+    result = popup_input([
+        output.put_text("Select from a list of popular bitcoin miners:"),
+        pin.put_select('examples', options=['-', 'S19 (3050 watts / 90 TH)', 'S9 (1300 watts / 13.5 TH)'], multiple=False),
+        output.put_text("Or, add details yourself"),
+        output.put_row(content=[
+            pin.put_input('wattage', label='wattage', type="number"),#, value=3010),
+            pin.put_input('hashrate', label='hashrate (in terahashes)', type="float"),#, value=90),
+        ]),
+        # 18220338.98
+        pin.put_input('btcprice', label='Bitcoin price at time of purchase', type="float", value=ns.price_bitcoin),
+        pin.put_input('cost', label='Dollar cost', type="float"),#, value=5375.00), #TODO THIS IS DEBUG ONLY!!!
+        #pin.put_radio("units", label='cost unit', options=["bitcoin", "fiat"], value='bitcoin'),
+    ], names=['examples', 'wattage', 'hashrate', 'btcprice', 'cost'], title="Enter the details of your potential miner purchase", onchangepinname='examples', callback=changeentries)
+    # pin.pin_on_change('examples', onchange=changeentries),
+
+    # USER HIT CANCEL
+    if result == None:
+        return
+
+    # VERIFY USER INPUT
+    if result['wattage'] == None or result['wattage'] <= 0:
+        output.toast("invalid wattage - no miners added")
+        return
+    if result['hashrate'] == None or result['hashrate'] <= 0:
+        output.toast("invalid hashrate - no miners added")
+        return
+    if result['cost'] == None or result['cost'] <= 0:
+        output.toast("invalid cost - no miners added")
+        return
+
+    # we convert the dollar cost to satoshis using the provided bitcoin price at time of equipment purchase
+    result['cost'] = btc( result['cost'], price=result['btcprice'])
+
+    del result['examples']
+    del result['btcprice']
+
+    # ADD THE MINER
+    us.miners.append( result )
+
+    # NOW WE HAVE TO CHANGE THE PIN INPUTS PIN_CAPEX AND PIN_EFF
+    # oh... and ALSO the sliders right below them
+    pin.pin[PIN_CAPEX] = pin.pin['play_with_capex'] = result['cost'] / result['hashrate']
+    pin.pin[PIN_EFF] = pin.pin['play_with_eff'] = round(result['wattage'] / result['hashrate'], 1)
+
+    # NOTIFY USER OF SUCCESS
+    output.toast('Analyzing miner profitability...', color='success', duration=2)
+
+    show_miners_list()
+
+    # TODO - this will cause a bug... don't set to DEFAULT_P below... have another way!  Unless we make sure this function is only called once... and the value isn't reset???  Hmmm...
+    capexsatsperthpermonth = us.total_capex() / pin.pin[PIN_MONTHSTOPROJECT] / us.total_terahash()
+
+    #show_settings() # we only call this function once.....
+    show_projection() # AUTO-RUN THE CALCULATION WHEN SOMEONE ADDS A MINER!  <3 SAVES A MOUSE CLICK
+
+
 
 ############################
 def delete_miner( row ):
@@ -734,26 +818,26 @@ def show_miners_list():
         return
 
     with output.use_scope( 'mine', clear=True):
-        output.put_markdown('# YOUR MINING EQUIPMENT')
+        output.put_markdown('# Mining equipment purchase consideration')
 
         if len(us.miners) > 0:
             # SHOW TABLE OF MINERS
             for idx, m in enumerate(us.miners):
                 output.put_table([[
-                    output.put_text( f"{idx+1}"),
-                    output.put_markdown( f"name:\n```{str(m['name'])}```" ),
+                    #output.put_text( f"{idx+1}"),
+                    #output.put_markdown( f"name:\n```{str(m['name'])}```" ),
                     output.put_markdown( f"wattage:\n```{str(m['wattage'])}```" ),
                     output.put_markdown( f"hashrate:\n```{str(m['hashrate'])}```"),
                     output.put_markdown( f"cost:\nsats: ```{float(m['cost']):,.2f}```\nbtc: ```{float(m['cost']) / ONE_HUNDRED_MILLION:.2f}```\n```${usd(float(m['cost'])):,.2f}```"),
-                    output.put_markdown( f"quantity:\n```{str(m['quantity'])}```" ),
-                    output.put_button(['analyze'], onclick=partial(popup_analyze_miner, row=idx), color='success'),
-                    output.put_button(['delete'], onclick=partial(delete_miner, row=idx), color='danger')
+                    #output.put_markdown( f"quantity:\n```{str(m['quantity'])}```" ),
+                    #output.put_button(['analyze'], onclick=partial(popup_analyze_miner, row=idx), color='success'),
+                    output.put_button(['remove'], onclick=partial(delete_miner, row=idx), color='danger')
                     ]])
         else:
-            output.put_markdown("use the __ADD MINER__ button to add your miners")
-
-        # can be one of: `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`.
-        output.put_button( 'ADD MINER', onclick=add_miner_dialog, color='warning' )
+            output.put_markdown("use the __ANALYZE MINER__ button below")
+            # can be one of: `primary`, `secondary`, `success`, `danger`, `warning`, `info`, `light`, `dark`.
+            #output.put_button( 'ADD MINER', onclick=add_miner_dialog, color='warning' )
+            output.put_button( 'ANALYZE MINER', onclick=add_miner_to_analyze_dialog, color='success' )
 
 ##########################
 def pretty_graph(res):
@@ -1111,6 +1195,23 @@ def show_projection():
 def show_settings():
     with output.use_scope("settings", clear=True):
 
+        output.put_markdown("## Mining equipment analysis")
+
+        # MINER CAPEX - SATS/TH
+        output.put_row(content=[
+            pin.put_input(name=PIN_CAPEX, type='float', value=0),
+            output.put_text("CAPEX (measured in satoshi per terahash)")
+        ])
+        pin.put_slider("play_with_capex", value=0,min_value=0.0, max_value=1_000_000.0, step=1 ),
+        pin.pin_on_change('play_with_capex', onchange=adjust_capex)
+        # MINER EFF
+        output.put_row(content=[
+            pin.put_input(name=PIN_EFF, type='float', value=0),
+            output.put_text("miner efficiency (measured in watts burned per terahash generated - W/TH)")
+        ])
+        pin.put_slider("play_with_eff", value=0,min_value=1.0, max_value=170.0, step=1 ),
+        pin.pin_on_change('play_with_eff', onchange=adjust_eff)
+        
         output.put_markdown("---")
         output.put_markdown("## Bitcoin price")
         output.put_row(content=[
@@ -1139,25 +1240,6 @@ def show_settings():
         pin.pin_on_change(name='post_growth_slider', onchange=adjust_pricegrow2)
 
         output.put_markdown("---")
-        output.put_markdown("## Miner analysis")
-
-        # MINER CAPEX - SATS/TH
-        output.put_row(content=[
-            pin.put_input(name=PIN_CAPEX, type='float', value=0),
-            output.put_text("CAPEX (measured in satoshi per terahash per month)")
-        ])
-        pin.put_slider("play_with_capex", value=0,min_value=0.0, max_value=1_000_000.0, step=1 ),
-        pin.pin_on_change('play_with_capex', onchange=adjust_capex)
-        # MINER EFF
-        output.put_row(content=[
-            pin.put_input(name=PIN_EFF, type='float', value=0),
-            output.put_text("miner efficiency (measured in watts burned per terahash generated - W/TH)")
-        ])
-        pin.put_slider("play_with_eff", value=0,min_value=1.0, max_value=170.0, step=1 ),
-        pin.pin_on_change('play_with_eff', onchange=adjust_eff)
-
-
-        output.put_markdown("---")
         output.put_markdown("## Bitcoin network state")
         output.put_row(content=[
             pin.put_input(name=PIN_HEIGHT, type='float', value=ns.block_height),
@@ -1165,7 +1247,7 @@ def show_settings():
         ])
         output.put_row(content=[
             pin.put_input(name=PIN_AVERAGEFEE, type='float', value=ns.fee_average),
-            output.put_text("average fee")
+            output.put_text("average transactions fees per block")
         ])
         output.put_row(content=[
             pin.put_input(name=PIN_NETWORKHASHRATE, type='float', value=ns.estimated_hashrate),
@@ -1360,3 +1442,4 @@ if __name__ == '__main__':
         #     pin.put_input(name='avgfee_growth', type='number', value=0), #TODO - oooh... fancy new, future features - DADDY LIEK!
         #     output.put_button("transaction fee analysis", onclick=currencyconverter)
         # ])
+        
