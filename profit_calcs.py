@@ -7,9 +7,12 @@
 
 
 TODO = """
-make 'for info only' variables
+[] make 'for info only' variables in res dict
 - avg subsidy
-- 
+- pool fee... ?
+
+
+[] when there is no internet it doesn't work... WHY???
 """
 
 
@@ -21,8 +24,6 @@ import threading
 from functools import partial
 from urllib.parse import non_hierarchical
 import urllib.request as ur
-
-from pandas import value_counts
 
 
 # FAIL GRACEFULLY AND HELP THE USER
@@ -400,7 +401,7 @@ def get_stats_from_internet() -> bool:
         #f = get_average_block_fee_from_internet(nBlocks=1) # TODO - DEBUG ONLY
         f = 9_000_000 # TODO - DEBUG ONLY # TODO - DEBUG ONLY # TODO - DEBUG ONLY
     except:
-        output.toast("Could not download network status.", color='error', duration=7)
+        output.toast("Could not download network status.", color='error', duration=4)
         return False
 
     pin.pin[PIN_BTC_PRICE_NOW] = p
@@ -769,6 +770,9 @@ def adjust_cost(usd_cost_of_miner: float):
         pin.pin_update(PIN_SAT_PER_TH, help_text=f"${dollarsperth:,.2f} / TH")
         pin.pin[PIN_COST] = round(usd_cost_of_miner, 2)
 
+        adjustupperresale()
+        adjustlowerresale()
+
         newprice = float(pin.pin[PIN_BOUGHTATPRICE])
         pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=newprice) / hr, 1):,.2f}"
         #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, price=newprice) / hr, 1)
@@ -1101,15 +1105,7 @@ def show_projection():
     #output.scroll_to('projection', position=output.Position.TOP)
 
 
-
-
-
-
-# adjustupperresale()
-# adjustlowerresale()
-
 def updatesatsperth(cost: float):
-    
     # if pin.pin[PIN_WATTAGE] == None or pin.pin[PIN_WATTAGE] < 1:
     #     return
     # if hashrate == None or hashrate < 1:
@@ -1117,16 +1113,21 @@ def updatesatsperth(cost: float):
     #     return
 
     # pin.pin[PIN_EFF] = pin.pin["play_with_eff"] = round(pin.pin[PIN_WATTAGE] / hashrate, 2)
-    
+
     if cost == None or cost < 1:
         pin.pin[PIN_SAT_PER_TH] = ''
         pin.pin[PIN_COST_SLIDER] = ''
+        pin.pin_update('upper', value='')
+        pin.pin_update('lower', value='')
         return
     try:
         pin.pin[PIN_COST_SLIDER] = cost
         hr = float(pin.pin[PIN_HASHRATE])
         dollarsperth = cost / hr
         pin.pin_update(name=PIN_SAT_PER_TH, help_text=f"${dollarsperth:.1f} / TH")
+
+        adjustupperresale()
+        adjustlowerresale()
 
         btcuponpurchase = float(pin.pin[PIN_BOUGHTATPRICE])
     except:
@@ -1237,7 +1238,7 @@ def show_settings():
             ],[
             pin.put_input(name=PIN_HASHGROW, type='float', value=DEFAULT_HASHGROW, label='Monthly hashrate growth: %'),
             pin.put_slider("play_with_growth", value=DEFAULT_HASHGROW,min_value=-2.0, max_value=10.0, step=0.1),
-            output.put_button("hashrate history tool", onclick=hashratehistory)
+            output.put_button("hashrate history analysis", onclick=hashratehistory)
             ]
         ])
         pin.pin_on_change('price_growth_slider', onchange=adjust_pricegrow)
@@ -1250,38 +1251,10 @@ def show_settings():
 
 
 
-
-#############
-def main():
-    session.set_env(title="bitcoin mining profitability calculator")
-    print( CLI_HELPTEXT )
-
-    # https://pywebio.readthedocs.io/en/latest/platform.html
-    # https://pywebio.readthedocs.io/en/v1.2.2/guide.html#server-mode-and-script-mode
-    # https://github.com/pywebio/PyWebIO/blob/dev/demos/bokeh_app.py
-    # I can't believe this fucking works!!!!  Will it ever cause problems? #shrug
-    t = threading.Thread(target=session.hold)
-    session.register_thread(t)
-    t.start()
-
-    with output.use_scope('main', clear=True):
-        output.put_markdown( MAIN_TEXT )
-        #output.put_markdown("---")
-        output.put_button("USD - BTC converter", onclick=currencyconverter, color='success')
-
-        # output.put_collapse(title='Analysis tools:', content=[
-        #     output.put_row(content=[
-        #         output.put_button("block time analysis", onclick=currencyconverter),
-        #         output.put_text("something")
-        #     ]),
-        #     output.put_row(content=[
-        #         output.put_button("step-by-step", onclick=showstepbystep),
-        #         output.put_text("something")
-        #     ]),
-        # ])
-    
-    show_settings()
-
+def init():
+    """
+        This tries to get the latest bitcoin network data + price
+    """
     # make init a popup??? but you can't have a popup call a popup..... maybe the popup will appear when data is being downloaded!!!
     with output.use_scope('init', clear=True):
 
@@ -1309,13 +1282,37 @@ def main():
 
         else:
             if not get_stats_from_internet():
-                if not popup_get_stats_from_user():
-                    output.toast("FUCK... quitting")
-                    exit(1)
+
+                # run an endless loop until user provides valid network data
+                r = popup_get_stats_from_user()
+                while r == False:
+                    r = popup_get_stats_from_user()
 
         output.clear(scope='init')
-        #show_settings()
+
+###############################
+def main():
+#if __name__ == '__main__':
+    session.set_env(title="bitcoin mining profit calculator")
+    print( CLI_HELPTEXT )
+
+    # https://pywebio.readthedocs.io/en/latest/platform.html
+    # https://pywebio.readthedocs.io/en/v1.2.2/guide.html#server-mode-and-script-mode
+    # https://github.com/pywebio/PyWebIO/blob/dev/demos/bokeh_app.py
+    # I can't believe this fucking works!!!!  Will it ever cause problems? #shrug
+    t = threading.Thread(target=session.hold)
+    session.register_thread( t )
+    t.start()
+
+    with output.use_scope('main', clear=True):
+        output.put_markdown( MAIN_TEXT )
+        output.put_button("USD - BTC converter", onclick=currencyconverter, color='info')
+
+    show_settings()
+    init()
 
 #############################
 if __name__ == '__main__':
+    # I do it this way because if you're running it on your node over SSH the webpage won't automatically open, you have to click the link
     pywebio.start_server(main, port=8080, debug=True)
+    #main()
