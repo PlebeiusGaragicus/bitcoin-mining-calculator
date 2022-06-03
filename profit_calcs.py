@@ -25,6 +25,8 @@ from functools import partial
 from urllib.parse import non_hierarchical
 import urllib.request as ur
 
+from pandas import value_counts
+
 
 # FAIL GRACEFULLY AND HELP THE USER
 try:
@@ -32,7 +34,7 @@ try:
     from pywebio import pin
     from pywebio import output
     from pywebio import session
-except ModuleNotFoundError as oh_shit_bro:
+except ModuleNotFoundError:
     print("""
         you don't seem to have pywebio installed.
 
@@ -48,7 +50,7 @@ except ModuleNotFoundError as oh_shit_bro:
 try:
     import plotly.graph_objects as go
     from plotly.subplots import make_subplots
-except ModuleNotFoundError as oh_shit_bro:
+except ModuleNotFoundError:
     print("""
         You don't have plotly installed.
         this is how you do it.
@@ -161,18 +163,22 @@ PIN_BOUGHTATPRICE = 'boughtatprice'
 # bitcoin price
 PIN_BTC_PRICE_NOW = 'price'
 PIN_PRICEGROW = 'pricegrow'
+PIN_PRICEGROW_SLIDER = 'pricegrow_slider'
+PIN_PRICEGROW2_SLIDER = 'pricegrow2_slider'
 PIN_LAG = 'lag'
 PIN_PRICEGROW2 = 'pricegrow2'
 # miner analysis
 PIN_CAPEX = 'satsPerTH' # this is sats per TH
-PIN_COST_SLIDER = 'play_with_cost'
+PIN_COST_SLIDER = 'cost_slider'
 PIN_EFF = 'eff'
+PIN_EFF_SLIDER = 'eff_slider'
 PIN_SAT_PER_TH = 'satsperth'
 # bitcoina network state
 PIN_HEIGHT = 'height'
 PIN_AVERAGEFEE = 'avgfee'
 PIN_NETWORKHASHRATE = 'nh'
 PIN_HASHGROW = 'hashgrow'
+PIN_HASHGROW_SLIDER = 'hashgrow_slider'
 PIN_HASHGROW2 = 'hashgrow2'
 # PROJECTION PARAMETERS
 PIN_KWH_RATE = 'costkwh'
@@ -182,6 +188,8 @@ PIN_MONTHSTOPROJECT = 'months'
 PIN_NEVERSELL = 'neversellmachine' #hardwarehodler ;)
 PIN_RESELL_UPPER ='resellupper'
 PIN_RESELL_LOWER = 'reselllower'
+PIN_UPPER_READONLY = 'upper_resale'
+PIN_LOWER_READONLY = 'lower_resale'
 
 OPTION_NEVERSELL = "Never sell machine"
 
@@ -697,7 +705,7 @@ def pretty_graph(res):
 
 
 # THESE FUNCTIONS ARE CALLED BY THE SLIDER PIN CALLBACK AND ADJUST THE PIN INPUT THEY CORRESPOND
-def adjust_pricegrow( v: float ):
+def pricegrow_slider( v: float ):
     try:
         pin.pin[PIN_PRICEGROW] = round(v, 2)
     except:
@@ -705,7 +713,7 @@ def adjust_pricegrow( v: float ):
         return
     show_projection()
 
-def adjust_pricegrow2( v: float ):
+def pricegrow2_slider( v: float ):
     try:
         pin.pin[PIN_PRICEGROW2] = round(v, 2)
     except:
@@ -713,7 +721,7 @@ def adjust_pricegrow2( v: float ):
         return
     show_projection()
 
-def adjust_hashgrow( v: float ):
+def hashgrow_slider( v: float ):
     try:
         pin.pin[PIN_HASHGROW] = round(v, 2)
     except:
@@ -721,48 +729,68 @@ def adjust_hashgrow( v: float ):
         return
     show_projection()
 
-def adjust_eff( v: float ):
+def eff_slider( v: float ):
     """
         THIS IS THE CALLBACK FOR THE SLIDER
         THE SLIDER MEASURES EFF...
             SO WHEN IT'S UPDATED WE UPDATE HASHRATE ASSUME A CONSTANT WATTAGE
     """
     try:
-        pin.pin[PIN_HASHRATE] = round(pin.pin[PIN_WATTAGE] / v, 2)
+        hr = round(pin.pin[PIN_WATTAGE] / v, 2)
+        pin.pin[PIN_HASHRATE] = hr
         pin.pin[PIN_EFF] = round(v, 2)
-    except:
+
+        usd_cost_of_miner = pin.pin[PIN_COST]
+        boughtatprice = pin.pin[PIN_BOUGHTATPRICE]
+        dollarsperth =  usd_cost_of_miner / hr
+
+        if None in [usd_cost_of_miner, dollarsperth, boughtatprice]:
+            pin.pin_update(PIN_SAT_PER_TH, help_text='')
+            pin.pin[PIN_SAT_PER_TH] = ''
+            return
+
+        pin.pin_update(PIN_SAT_PER_TH, help_text=f"${dollarsperth:,.2f} / TH")
+        pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=boughtatprice) / hr, 1):,.2f}"
+    except Exception as e:
         output.toast("Enter in mining equipment details first.")
+        print("ERROR:", e)
         return
     #show_projection()
 
-def updateeff_givenhashrate(hashrate: float):
+def hashrate_waschanged(hashrate: float):
     """
         THIS IS THE CALLBACK FOR PIN_HASHRATE ONCHANGE=
-        it updates PIN_EFF and "play_with_eff" slider
+        it updates PIN_EFF and PIN_EFF_SLIDER slider
     """
     if pin.pin[PIN_WATTAGE] == None or pin.pin[PIN_WATTAGE] < 1:
         return
     if hashrate == None or hashrate < 1:
-        pin.pin[PIN_EFF] = pin.pin["play_with_eff"] = 0
+        pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = 0
         return
+    
+    usd_cost_of_miner = pin.pin[PIN_COST]
 
-    pin.pin[PIN_EFF] = pin.pin["play_with_eff"] = round(pin.pin[PIN_WATTAGE] / hashrate, 2)
+    if not usd_cost_of_miner == None:
+        dollarsperth = usd_cost_of_miner / hashrate
+        pin.pin_update(PIN_SAT_PER_TH, help_text=f"${dollarsperth:,.2f} / TH")
 
-def updateeff_givenwattage(wattage: float):
+    pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = round(pin.pin[PIN_WATTAGE] / hashrate, 2)
+
+def wattage_waschanged(wattage: float):
     """
         THIS IS THE CALLBACK FOR PIN_WATTAGE ONCHANGE=
-        it updates PIN_EFF and "play_with_eff" slider
+        it updates PIN_EFF and PIN_EFF_SLIDER slider
     """
     if pin.pin[PIN_HASHRATE] == None or pin.pin[PIN_HASHRATE] < 1:
         return
     if wattage == None or wattage < 1:
-        pin.pin[PIN_EFF] = pin.pin["play_with_eff"] = 0
+        pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = 0
         return
 
-    pin.pin[PIN_EFF] = pin.pin["play_with_eff"] = round(wattage / pin.pin[PIN_HASHRATE], 1)
+    pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = round(wattage / pin.pin[PIN_HASHRATE], 1)
 
 
-def adjust_cost(usd_cost_of_miner: float):
+def cost_slider(usd_cost_of_miner: float):
     try:
         hr = float(pin.pin[PIN_HASHRATE])
         dollarsperth = usd_cost_of_miner / hr
@@ -770,16 +798,19 @@ def adjust_cost(usd_cost_of_miner: float):
         pin.pin_update(PIN_SAT_PER_TH, help_text=f"${dollarsperth:,.2f} / TH")
         pin.pin[PIN_COST] = round(usd_cost_of_miner, 2)
 
-        adjustupperresale()
-        adjustlowerresale()
+        # I don't like this... we aren't sanitizing
+        upperresale_waschanged( pin.pin[PIN_RESELL_UPPER] )
+        lowerresale_waschanged( pin.pin[PIN_RESELL_LOWER] )
 
-        newprice = float(pin.pin[PIN_BOUGHTATPRICE])
-        pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=newprice) / hr, 1):,.2f}"
+        new_boughtatprice = float(pin.pin[PIN_BOUGHTATPRICE])
+        pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=new_boughtatprice) / hr, 1):,.2f}"
+        pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (usd_cost_of_miner/new_boughtatprice):,.1f} sats")
         #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, price=newprice) / hr, 1)
-    except:
+    except Exception as e:
+        print("ERROR:", e)
         return
 
-def adjust_cost_withnewboughtatprice(newprice: float):
+def boughtatprice_waschanged(newprice: float):
     if newprice == None or newprice < 1:
         pin.pin[PIN_SAT_PER_TH] = ''
         return
@@ -793,6 +824,7 @@ def adjust_cost_withnewboughtatprice(newprice: float):
         return
 
     pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=newprice) / hr, 1):,.2f}"
+    pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (usd_cost_of_miner/newprice):,.1f} sats")
     #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, price=newprice) / hr, 1)
 
     # call this to adjust everything else along with it
@@ -1105,7 +1137,7 @@ def show_projection():
     #output.scroll_to('projection', position=output.Position.TOP)
 
 
-def updatesatsperth(cost: float):
+def cost_waschanged(cost: float):
     # if pin.pin[PIN_WATTAGE] == None or pin.pin[PIN_WATTAGE] < 1:
     #     return
     # if hashrate == None or hashrate < 1:
@@ -1117,8 +1149,9 @@ def updatesatsperth(cost: float):
     if cost == None or cost < 1:
         pin.pin[PIN_SAT_PER_TH] = ''
         pin.pin[PIN_COST_SLIDER] = ''
-        pin.pin_update('upper', value='')
-        pin.pin_update('lower', value='')
+        pin.pin_update(name=PIN_COST, help_text='')
+        pin.pin_update(PIN_UPPER_READONLY, value='')
+        pin.pin_update(PIN_LOWER_READONLY, value='')
         return
     try:
         pin.pin[PIN_COST_SLIDER] = cost
@@ -1126,16 +1159,19 @@ def updatesatsperth(cost: float):
         dollarsperth = cost / hr
         pin.pin_update(name=PIN_SAT_PER_TH, help_text=f"${dollarsperth:.1f} / TH")
 
-        adjustupperresale()
-        adjustlowerresale()
+        # again... I'm not a fan of this.. nothing is sanitized
+        upperresale_waschanged( int(pin.pin[PIN_RESELL_UPPER]) )
+        lowerresale_waschanged( int(pin.pin[PIN_RESELL_UPPER]) )
 
         btcuponpurchase = float(pin.pin[PIN_BOUGHTATPRICE])
-    except:
+    except Exception as e:
+        print(e)
         return
     
+    pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (cost/btcuponpurchase):,.1f} sats")
     pin.pin[PIN_SAT_PER_TH] = f"{round(btc(cost, price=btcuponpurchase) / hr, 1):,.2f}"
 
-def hardwarehodl( o ):
+def neversell_waschanged( o ):
     if OPTION_NEVERSELL in o:
         # NEVER SELL
         pin.pin_update(name=PIN_RESELL_UPPER, readonly=True)
@@ -1147,20 +1183,32 @@ def hardwarehodl( o ):
         pin.pin_update(name=PIN_RESELL_LOWER, readonly=False)
         pin.pin_update(name=PIN_MONTHSTOPROJECT, label="Months until you re-sell this miner")
 
-def adjustupperresale():
+def upperresale_waschanged(v: int):
     try:
         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_UPPER] / 100)
-        pin.pin_update('upper', value=v)
+        pin.pin_update(PIN_UPPER_READONLY, value=v)
     except:
         return
 
-def adjustlowerresale():
+def lowerresale_waschanged(v: int):
     try:
         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_LOWER] / 100)
-        pin.pin_update('lower', value=v)
+        pin.pin_update(PIN_LOWER_READONLY, value=v)
     except:
         return
     pass
+
+def hashgrow_waschanged( newval: float ):
+    if newval == None:
+        return
+    
+    # THIS DOES NOT WORK-Y WORK... :) SAD EMOJI GOES HERE
+    #pin.pin_update(PIN_HASHGROW_SLIDER, max_value=int(newval*2))
+
+    pin.pin_update(PIN_HASHGROW_SLIDER, value=newval)
+    pin.pin[PIN_HASHGROW_SLIDER] = newval
+
+
 
 #######################
 def show_settings():
@@ -1169,22 +1217,22 @@ def show_settings():
         output.put_markdown('## Mining equipment purchase consideration')
 
         output.put_table([[
-                pin.put_input(PIN_WATTAGE, type='float', label="Wattage"),
-                pin.put_input(PIN_HASHRATE, type='float', label='Hashrate (in terahash)'),
-                pin.put_input(PIN_EFF, type='float', label="Efficiency (W/TH)", readonly=True),
-                pin.put_slider("play_with_eff", value=0,min_value=1, max_value=170, label="play with efficiency")
+                pin.put_input(name=PIN_WATTAGE, type='float', label="Wattage"),
+                pin.put_input(name=PIN_HASHRATE, type='float', label='Hashrate (in terahash)'),
+                pin.put_input(name=PIN_EFF, type='float', label="Efficiency (W/TH)", readonly=True),
+                pin.put_slider(name=PIN_EFF_SLIDER, value=0,min_value=1, max_value=170, label="efficiency slider")
             ],[
-                pin.put_input(PIN_BOUGHTATPRICE, type='float', label='bitcoin price at time of purchase', value=pin.pin[PIN_BTC_PRICE_NOW]),
-                pin.put_input(PIN_COST, type='float', label='Dollar cost of machine'),
-                pin.put_input(PIN_SAT_PER_TH, type='float', label="Sats per TH", readonly=True),
-                pin.put_slider(PIN_COST_SLIDER, value=0,min_value=1, max_value=20_000, step=5, label="play with purchase amount")
+                pin.put_input(name=PIN_BOUGHTATPRICE, type='float', label='bitcoin price at time of purchase', value=pin.pin[PIN_BTC_PRICE_NOW]),
+                pin.put_input(name=PIN_COST, type='float', label='Dollar cost of machine'),
+                pin.put_input(name=PIN_SAT_PER_TH, type='float', label="Sats per TH", readonly=True),
+                pin.put_slider(name=PIN_COST_SLIDER, value=0,min_value=1, max_value=20_000, step=5, label="purchase amount slider")
             ]])
-        pin.pin_on_change(name=PIN_BOUGHTATPRICE, onchange=adjust_cost_withnewboughtatprice)
-        pin.pin_on_change(name=PIN_COST, onchange=updatesatsperth)
-        pin.pin_on_change(name=PIN_HASHRATE, onchange=updateeff_givenhashrate)
-        pin.pin_on_change(name=PIN_WATTAGE, onchange=updateeff_givenwattage)
-        pin.pin_on_change(PIN_COST_SLIDER, onchange=adjust_cost)
-        pin.pin_on_change('play_with_eff', onchange=adjust_eff)
+        pin.pin_on_change(name=PIN_BOUGHTATPRICE, onchange=boughtatprice_waschanged)
+        pin.pin_on_change(name=PIN_COST, onchange=cost_waschanged)
+        pin.pin_on_change(name=PIN_HASHRATE, onchange=hashrate_waschanged)
+        pin.pin_on_change(name=PIN_WATTAGE, onchange=wattage_waschanged)
+        pin.pin_on_change(name=PIN_COST_SLIDER, onchange=cost_slider)
+        pin.pin_on_change(name=PIN_EFF_SLIDER, onchange=eff_slider)
 
         #output.put_button("Analyze Miner", onclick=updateminerdata, color='success')
 
@@ -1194,14 +1242,14 @@ def show_settings():
                 pin.put_checkbox(name=PIN_NEVERSELL, options=[OPTION_NEVERSELL], value=False)
             ],[
                 pin.put_input(name=PIN_RESELL_UPPER, type='number', value=75, label="Resale % UPPER limit", help_text="% percent of purchase price"),
-                pin.put_input('upper', type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
+                pin.put_input(name=PIN_UPPER_READONLY, type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
             ],[
                 pin.put_input(name=PIN_RESELL_LOWER, type='number', value=50, label="Resale % LOWER limit", help_text="% percent of purchase price"),
-                pin.put_input('lower', type='number', label="Resale value LOWER LIMIT", readonly=True, help_text="($) resale amount")
+                pin.put_input(PIN_LOWER_READONLY, type='number', label="Resale value LOWER LIMIT", readonly=True, help_text="($) resale amount")
         ]])
-        pin.pin_on_change(name=PIN_NEVERSELL, onchange=hardwarehodl)
-        pin.pin_on_change('upper', onchange=adjustupperresale)
-        pin.pin_on_change('lower', onchange=adjustlowerresale)
+        pin.pin_on_change(name=PIN_NEVERSELL, onchange=neversell_waschanged)
+        pin.pin_on_change(PIN_RESELL_UPPER, onchange=upperresale_waschanged)
+        pin.pin_on_change(PIN_RESELL_LOWER, onchange=lowerresale_waschanged)
 
         output.put_markdown("---")
         output.put_markdown("## Bitcoin network state")
@@ -1229,7 +1277,7 @@ def show_settings():
 
         output.put_table([[
             pin.put_input(name=PIN_PRICEGROW, type='float', value=DEFAULT_PRICEGROW, label='Monthly price growth: %', help_text='how fast do you predict the bitcoin price will grow month-to-month?'),
-            pin.put_slider("price_growth_slider", label='Price growth slider', value=DEFAULT_PRICEGROW,min_value=-10.0, max_value=20.0, step=0.1),
+            pin.put_slider(PIN_PRICEGROW_SLIDER, label='Price growth slider', value=DEFAULT_PRICEGROW,min_value=-10.0, max_value=20.0, step=0.1),
             output.put_button("price history analysis", onclick=pricehistory)
             ],[
             pin.put_input(name=PIN_PRICEGROW2, type='float', value=DEFAULT_PRICEGROW2, label='Post-halvening price growth: %', help_text="How fast do you think the price will grow monthly post-halvening (and post 'lag')"),
@@ -1237,17 +1285,18 @@ def show_settings():
             pin.put_input(name=PIN_LAG, type='float', value=DEFAULT_LAG, label='Halvening price lag (months)', help_text="The price growth post-halvening sometimes lags a few months...")
             ],[
             pin.put_input(name=PIN_HASHGROW, type='float', value=DEFAULT_HASHGROW, label='Monthly hashrate growth: %'),
-            pin.put_slider("play_with_growth", value=DEFAULT_HASHGROW,min_value=-2.0, max_value=10.0, step=0.1),
+            pin.put_slider(PIN_HASHGROW_SLIDER, value=DEFAULT_HASHGROW,min_value=-2.0, max_value=10.0, step=0.1),
             output.put_button("hashrate history analysis", onclick=hashratehistory)
             ]
         ])
-        pin.pin_on_change('price_growth_slider', onchange=adjust_pricegrow)
-        pin.pin_on_change(name='post_halvening_slider', onchange=adjust_pricegrow2)
-        pin.pin_on_change('play_with_growth', onchange=adjust_hashgrow)
+        pin.pin_on_change(PIN_PRICEGROW_SLIDER, onchange=pricegrow_slider)
+        pin.pin_on_change(name=PIN_PRICEGROW2_SLIDER, onchange=pricegrow2_slider)
+        pin.pin_on_change(PIN_HASHGROW_SLIDER, onchange=hashgrow_slider)
+        pin.pin_on_change(name=PIN_HASHGROW, onchange=hashgrow_waschanged)
 
         #pin.put_checkbox('verbose', options=['VERBOSE MODE - (put every variable on the spreadsheet)'], inline=True)
 
-        output.put_button( 're-calculate', onclick=show_projection, color='warning' )
+        output.put_button( 'RUN PROJECTION', onclick=show_projection, color='warning' )
 
 
 
