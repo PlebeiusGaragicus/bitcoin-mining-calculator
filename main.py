@@ -1,7 +1,7 @@
 # MICAH FULLERTON 2022
 # I stand on the shoulders of giants...
 # https://insights.braiins.com/en/profitability-calculator/
-
+# https://github.com/LuxorLabs
 
 import threading
 
@@ -14,7 +14,7 @@ from pywebio import session
 from constants import *
 from nodes import *
 from popups import *
-from getdata import *
+from data import *
 from webio import *
 from calcs import *
 
@@ -59,7 +59,8 @@ def init():
 
     else:
         # if we're not able to get stats from the internet:
-        if not get_stats_from_internet():
+        #if not get_stats_from_internet():
+        if not get_stats_from_luxor():
 
             # run an endless loop until user provides valid network data
             r = popup_get_stats_from_user()

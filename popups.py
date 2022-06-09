@@ -4,7 +4,7 @@ from pywebio import pin
 from pywebio import output
 
 from constants import *
-from getdata import *
+from data import *
 
 
 ###################################### THIS FUNCTION ROCKS!!!!!!!!! SAVE THIS!!!!!!!

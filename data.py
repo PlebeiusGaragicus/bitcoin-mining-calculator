@@ -4,7 +4,55 @@ import urllib.request as ur
 from pywebio import pin
 from pywebio import output
 
+from luxordata import API
+# keep it secret... keep it safe
+import apikey
+
 from constants import *
+
+########################################
+# https://github.com/LuxorLabs/hashrateindex-api-python-client
+def get_stats_from_luxor() -> bool:
+    output.toast("Gathering data from luxor...", duration=2)
+
+    ENDPOINT = 'https://api.hashrateindex.com/graphql'
+    lux = API(host=ENDPOINT, method='POST', key=apikey.LUXOR_API_KEY, verbose=True)
+
+    
+    try:
+        data = lux.get_bitcoin_overview()['data']['bitcoinOverviews']['nodes']
+# [{'timestamp': '2022-06-09T02:34:43+00:00',
+# 'hashpriceUsd': '0.1264933082578627',
+# 'networkHashrate7D': '222015523.66824248',
+# 'networkDiff': '30283293547736',
+# 'estDiffAdj': '20.24',
+# 'coinbaseRewards24H': '6.31113782730337',
+# 'feesBlocks24H': '0.9782052368539326',
+# 'marketcap': '575.5891660946875',
+# 'nextHalvingCount': 100015,
+# 'nextHalvingDate': '2024-05-03T00:00:00+00:00',
+# 'txRateAvg7D': '2.8970980756008053'}]
+
+        nh = lux.get_network_hashrate("_7_DAY")['data']['getNetworkHashrate']['nodes']
+        print("hashrate", nh)
+
+        price = lux.get_ohlc_prices("_1_DAY")['data']['getChartBySlug']['data']
+        print("price", price)
+        
+        output.toast("loading complete!!!", color='success')
+    except Exception as e:
+        print("Exception:", e)
+        output.toast("Could not download network status.", color='error', duration=4)
+        return False
+
+    # pin.pin[PIN_BTC_PRICE_NOW] = p
+    # pin.pin[PIN_BOUGHTATPRICE] = p
+    # pin.pin[PIN_HEIGHT] = h
+    # pin.pin[PIN_AVERAGEFEE] = f
+    # pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
+    # pin.pin[PIN_NETWORKHASHRATE] = nh
+
+    return True
 
 
 ########################################
@@ -22,11 +70,7 @@ def get_stats_from_internet() -> bool:
 
         output.put_text("Getting average block fee from internet... please wait...!!!", scope='init')
         
-        if debug: # TODO DEBUG ONLY
-            nblocks = 1
-        else:
-            nblocks = EXPECTED_BLOCKS_PER_DAY
-        f = get_average_block_fee_from_internet(nBlocks=nblocks)
+        f = get_average_block_fee_from_internet(nBlocks=1) # TODO DEBUG ONLY
     except Exception as e:
         print("Exception:", e)
         output.toast("Could not download network status.", color='error', duration=4)
@@ -67,12 +111,6 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> in
     return total_fee
 
 
-
-########################################
-#API_URL = 'https://api.coindesk.com/v1/bpi/currentprice.json'
-# float( data['bpi']['USD']['rate_float'] )
-#price = float( data["data"]["amount"].split(".")[0].replace(',', '') )
-#price = data["data"]["amount"].replace(',', '')
 def query_bitcoinprice() -> float:
     """
         - queries the current bitcoin price from the coindesk.com API
@@ -93,6 +131,3 @@ def query_bitcoinprice() -> float:
         return -1
 
     return price
-
-
-

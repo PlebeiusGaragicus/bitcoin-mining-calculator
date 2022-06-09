@@ -4,7 +4,7 @@ from pywebio import output
 from constants import *
 from nodes import *
 from popups import *
-from getdata import *
+from data import *
 from calcs import *
 
 
