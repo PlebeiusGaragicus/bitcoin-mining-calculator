@@ -18,7 +18,6 @@ def get_stats_from_luxor() -> bool:
     ENDPOINT = 'https://api.hashrateindex.com/graphql'
     lux = API(host=ENDPOINT, method='POST', key=apikey.LUXOR_API_KEY, verbose=True)
 
-    
     try:
         data = lux.get_bitcoin_overview()['data']['bitcoinOverviews']['nodes']
 # [{'timestamp': '2022-06-09T02:34:43+00:00',
@@ -38,6 +37,8 @@ def get_stats_from_luxor() -> bool:
 
         price = lux.get_ohlc_prices("_1_DAY")['data']['getChartBySlug']['data']
         print("price", price)
+
+        return False # TODO DEBUG ONLY
         
         output.toast("loading complete!!!", color='success')
     except Exception as e:
@@ -45,12 +46,12 @@ def get_stats_from_luxor() -> bool:
         output.toast("Could not download network status.", color='error', duration=4)
         return False
 
-    # pin.pin[PIN_BTC_PRICE_NOW] = p
-    # pin.pin[PIN_BOUGHTATPRICE] = p
-    # pin.pin[PIN_HEIGHT] = h
-    # pin.pin[PIN_AVERAGEFEE] = f
-    # pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-    # pin.pin[PIN_NETWORKHASHRATE] = nh
+    pin.pin[PIN_BTC_PRICE_NOW] = 0
+    pin.pin[PIN_BOUGHTATPRICE] = 0
+    pin.pin[PIN_HEIGHT] = 0
+    pin.pin[PIN_AVERAGEFEE] = 0
+    #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
+    pin.pin[PIN_NETWORKHASHRATE] = 0
 
     return True
 
