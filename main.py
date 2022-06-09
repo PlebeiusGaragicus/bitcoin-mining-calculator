@@ -59,13 +59,13 @@ def init():
 
     else:
         # if we're not able to get stats from the internet:
-        #if not get_stats_from_internet():
         if not get_stats_from_luxor():
+            if not get_stats_from_internet():
 
-            # run an endless loop until user provides valid network data
-            r = popup_get_stats_from_user()
-            while r == False:
+                # run an endless loop until user provides valid network data
                 r = popup_get_stats_from_user()
+                while r == False:
+                    r = popup_get_stats_from_user()
 
 ###############################
 def main():
