@@ -1,8 +1,3 @@
-
-CLI_HELPTEXT = """
->> Remember: Ctrl-C to exit
-"""
-
 MAIN_TEXT = """# Open-Source Bitcoin Mining Profitability Calculator
 
 __The goal of this project is to inspire__ people to learn more about bitcoin's built-in incentive structure - mining.

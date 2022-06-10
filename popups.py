@@ -131,7 +131,7 @@ def popup_get_stats_from_user() -> bool:
 ##############################
 def popup_currencyconverter():
     def updateprice():
-        pin.pin['convertprice'] = query_bitcoinprice()
+        pin.pin['convertprice'] = get_price() # query_bitcoinprice()
 
     def convert_to_sat():
         try:
@@ -140,7 +140,7 @@ def popup_currencyconverter():
             if amnt < 0 or price < 0:
                 return
         except Exception as e:
-            print("Exception:", e)
+            logging.exception()
             return
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
         pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
@@ -152,7 +152,7 @@ def popup_currencyconverter():
             if amnt < 0 or price < 0:
                 return
         except Exception as e:
-            print("Exception:", e)
+            logging.exception()
             return
         r = amnt * (price / ONE_HUNDRED_MILLION)
         pin.pin["result"] = f"{amnt:,.2f} sats @ ${price:,.2f} = ${r:,.2f}\n" + pin.pin['result']
@@ -160,7 +160,7 @@ def popup_currencyconverter():
     output.popup('USD - BTC converter', content=[
         output.put_row(content=[
             output.put_column(content=[
-                pin.put_input("convertprice", type="float", label="Price of bitcoin:", value=query_bitcoinprice()),
+                pin.put_input("convertprice", type="float", label="Price of bitcoin:", value=get_price()),
                 output.put_button("refresh price", onclick=updateprice)
                 ]),
             output.put_column(content=[

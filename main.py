@@ -3,7 +3,9 @@
 # https://insights.braiins.com/en/profitability-calculator/
 # https://github.com/LuxorLabs
 
+from operator import mod
 import threading
+import logging
 
 import pywebio
 from pywebio import pin
@@ -18,6 +20,11 @@ from data import *
 from webio import *
 from calcs import *
 
+# mainlogger.basicConfig(
+#     level=logging.ERROR,
+#     format="%(asctime)s [%(levelname)s] %(message)s",
+#     handlers=[logging.StreamHandler(),
+#               logging.FileHandler('mining-calcs.log', mode='w')])
 
 
 def init():
@@ -39,16 +46,19 @@ def init():
         nh = node_networkhashps(path)
         
         #output.put_text("Getting price of bitcoin...", scope='init')
-        print("Getting price of bitcoin...")
-        p = query_bitcoinprice()
+        #print("Getting price of bitcoin...")
+        p = get_price() # query_bitcoinprice()
 
         if p == -1:
             #output.toast("Unable to download current bitcoin price from <some website>")
-            print("ERROR: Unable to get current bitcoin price")
+            #print("ERROR: Unable to get current bitcoin price")
+            logging.error("Unable to get current bitcoin price")
             p = popup_get_price_from_user()
             print(f"Using user-supplied Bitcoin price: ${p:,.2f}")
+            logging.info(f"Using user-supplied Bitcoin price: ${p:,.2f}")
         else:
-            print(f"Bitcoin price: ${p:,.2f}")
+            #print(f"Bitcoin price: ${p:,.2f}")
+            logging.info(f"Bitcoin price: ${p:,.2f}")
 
         pin.pin[PIN_BTC_PRICE_NOW] = p
         pin.pin[PIN_BOUGHTATPRICE] = p
@@ -71,7 +81,6 @@ def init():
 def main():
 #if __name__ == '__main__':
     session.set_env(title="bitcoin mining profit calculator")
-    print( CLI_HELPTEXT )
 
     # https://pywebio.readthedocs.io/en/latest/platform.html
     # https://pywebio.readthedocs.io/en/v1.2.2/guide.html#server-mode-and-script-mode
@@ -90,6 +99,15 @@ def main():
 
 #############################
 if __name__ == '__main__':
+
+    #logging.getLogger(__name__)
+    logging.basicConfig(
+        level=logging.INFO,
+        #format="%(asctime)s [%(levelname)s] %(message)s",
+        format="[%(levelname)s] (%(filename)s @ %(lineno)d) %(message)s",
+        handlers=[logging.StreamHandler(),
+                  logging.FileHandler('debug.log', mode='w')])
+
     # I do it this way because if you're running it on your node over SSH the webpage won't automatically open, you have to click the link
     pywebio.start_server(main, port=8080, debug=True)
     #main()

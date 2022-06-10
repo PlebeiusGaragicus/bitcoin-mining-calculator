@@ -1,3 +1,5 @@
+import logging
+
 import os
 import json
 
@@ -16,31 +18,31 @@ def useful_node():
     if bin_path == '':
         bin_path = os.popen("which bitcoin-cli").read().strip('\n')
         if bin_path == '':
-            print("ERROR: could not find bitcoin core on this machine")
+            logging.info("Could not find bitcoin core on this machine")
             return None
 
-    print("bitcoin core found at:", bin_path)
+    logging.info(f"bitcoin core found at: {bin_path}")
 
     try:
         # https://developer.bitcoin.org/reference/rpc/getblockchaininfo.html
-        node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo").read() )
-        # stderr is thrown away...
-        #node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo 2> /dev/null").read() )
+        node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo 2> /dev/null").read() ) # stderr is thrown away...
+        #node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo").read() )
 
         ibd = bool( node_info['initialblockdownload'] )
-        print("Node in Initial Block Download?", ibd)
+        logging.info(f"Node in Initial Block Download? {ibd}")
         progress = float( node_info['verificationprogress'] )
     except Exception as e:
-        print("ERROR: your bitcoin node does not appear to be running.")
+        logging.info("Your bitcoin node does not appear to be running.")
+        #logging.exception("Your bitcoin node does not appear to be running.")
         return None
 
-    print(node_info)
+    logging.info(node_info)
 
     if ibd == True:
         print(f"ERROR: your node is currently downloading the blockchain, it is not fully sync'd yet ({float(progress * 100):.0f}% downloaded)")
         return None
 
-    print(f"This node appears up-to-date - we can use it!")
+    logging.info(f"This node appears up-to-date - we can use it!")
 
     return bin_path
 
@@ -77,17 +79,11 @@ def node_avgblockfee(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
     """
     blockheight = int(os.popen(f"{bcli_path} getblockcount").read())
 
-    #output.put_text(f"Calculating average block fee from last {nBlocks} blocks - please wait...", scope='init')
-
-    #output.popup("Averaging block transaction fees...", content=[[
-    #]])
-
     with output.popup(f"Averaging transactions fees for last {nBlocks} blocks...", closable=False) as p:
 
         pin.put_input("remaining", value=nBlocks, label="Blocks remaining:")
         pin.put_textarea("feescroller", value='')
         pin.put_input('sofar', value='', label="Average so far:")
-        #output.put_button("Cancel", onclick=cancel, color='danger')
         output.put_button("Stop early", color='danger', onclick=lambda: output.close_popup())
 
         total_fee = 0
@@ -101,14 +97,16 @@ def node_avgblockfee(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
             try:
                 pin.pin['feescroller'] = f"block: {bdx} --> fee: {block_fee:,}\n" + pin.pin["feescroller"]
             except Exception as e:
-                print("Exception:", e)
+                logging.exception()
                 # this error happens if the popup was closed
                 return round(total_fee / (1 + bdx - blockheight + nBlocks), 2)
-            print("block: ", bdx, " -->  fee: ", format(block_fee, ',').rjust(11), " satoshi")
-    
+            #print("block: ", bdx, " -->  fee: ", format(block_fee, ',').rjust(11), " satoshi")
+            logging.info(f"block: {bdx} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")
+
     output.close_popup()
 
     total_fee /= nBlocks
 
-    print(f"average block fee over last {nBlocks} blocks is {total_fee:,.2f} satoshi")
+    #print(f"average block fee over last {nBlocks} blocks is {total_fee:,.2f} satoshi")
+    logging.info(f"average block fee over last {nBlocks} blocks is {total_fee:,.2f} satoshi")
     return round(total_fee, 2)
