@@ -2,8 +2,7 @@
 # slightly modified for my convenience...
 
 # https://hashrateindex.com/blog/energy-curtailment-strike-price-api/
-# https://github.com/LuxorLabs/hashrateindex-api-python-client
-# https://github.com/LuxorLabs/graphql-python-client
+# https://github.com/LuxorLabs/hashrateindex-api-python-client  
 # https://data.hashrateindex.com/network-data/btc
 # https://hashrateindex.com/
 
