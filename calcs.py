@@ -1,5 +1,7 @@
 # DO THE CALCULATIONS
 
+import logging
+
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -89,7 +91,7 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
         for _ in range(30):
 
             if blocks_until_halvening( height ) < EXPECTED_BLOCKS_PER_DAY:
-                print("we will cross a halvening, block:", height)
+                logging.debug(f"we will cross a halvening, block: {height}")
                 crossed = True
                 month_we_crossed = m
 
@@ -105,7 +107,7 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
 
             # DO A WHOLE DAY AT A TIME
             else:
-                print("we will NOT cross a halvening - calculating one day : at block ", height, " until:", blocks_until_halvening(height ))
+                logging.debug(f"we will NOT cross a halvening - calculating one day : at block {height} until: {blocks_until_halvening(height)}")
 
                 hashvalue += hashrate * (block_subsity( height ) + avgfee) * (1 - poolfee) * EXPECTED_BLOCKS_PER_DAY / networh_hashrate
                 #hashvalue += (block_subsity( _blk ) + ns.fee_average) * (1 - user_pool_fee()) * EXPECTED_BLOCKS_PER_DAY / _nh
@@ -122,19 +124,17 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
 
         # if we have crossed the halvening AND it's been 'LAG MONTHS' since... use pricegrow2
         if crossed and m - month_we_crossed >= pricelag:
-            print(f"price increased from{price:,.2f} to ", end='')
             price *= 1 + pricegrow2
-            print(f"{price} using growth factor2: {pricegrow2}")
+            logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
         else:
             # if we haven't crossed a halvening... OR it hasn't been 'LAG MONTHS' yet
-            print(f"price increased from{price:,.2f} to ", end='')
             price *= 1 + pricegrow # 1 + pricegrow / 30 # daily
-            print(f"{price} using growth factor: {pricegrow}")
+            logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
 
         # TODO
         # if no profit
             # unplug
-        # if duck, fuck, squeeze... print()
+        # if duck, fuck, squeeze... log it!
 
         sold_e = btc(_kwh * kWh_rate, price=price)
         sold_o = btc(opex, price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
@@ -289,7 +289,7 @@ def pretty_graph(res):
 ##########################
 def make_table_string(res) -> str:
     #verbose = bool(pin.pin['verbose'])
-    #print("verbose:", verbose)
+    #log it ("verbose:", verbose)
 
 
     # https://docs.python.org/3/library/string.html

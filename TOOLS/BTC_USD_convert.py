@@ -5,30 +5,33 @@ from pywebio import pin
 from pywebio import output
 from pywebio import session
 
-ONE_HUNDRED_MILLION = 100_000_000
+from data import get_price
+from constants import ONE_HUNDRED_MILLION
 
-def query_bitcoinprice() -> float:
-    """
-        - queries the current bitcoin price from the coindesk.com API
-        - returns (-1) on error
-        - shell one-liner:
-            - alias btcprice = "curl -s 'https://api.coinbase.com/v2/prices/spot?currency=USD' | jq -r '.data.amount'"
-    """
+#ONE_HUNDRED_MILLION = 100_000_000
 
-    try:
-        API_URL = 'https://api.coinbase.com/v2/prices/spot?currency=USD'
-        response = ur.urlopen(ur.Request( API_URL )).read()
-        data = json.loads(response) # returns dict
-        price = float( data['data']['amount'] )
-    except:
-        return -1
+# def query_bitcoinprice() -> float:
+#     """
+#         - queries the current bitcoin price from the coindesk.com API
+#         - returns (-1) on error
+#         - shell one-liner:
+#             - alias btcprice = "curl -s 'https://api.coinbase.com/v2/prices/spot?currency=USD' | jq -r '.data.amount'"
+#     """
 
-    return price
+#     try:
+#         API_URL = 'https://api.coinbase.com/v2/prices/spot?currency=USD'
+#         response = ur.urlopen(ur.Request( API_URL )).read()
+#         data = json.loads(response) # returns dict
+#         price = float( data['data']['amount'] )
+#     except:
+#         return -1
+
+#     return price
 
 
 if __name__ == '__main__':
     def updateprice():
-        pin.pin['price'] = query_bitcoinprice()
+        pin.pin['price'] = get_price()
 
     def convert_to_sat():
         amnt = float(pin.pin["amount"])
@@ -47,7 +50,7 @@ if __name__ == '__main__':
     output.put_markdown( """# uhhh... how many sats is that?""" )
     output.put_row(content=[
         output.put_column(content=[
-            pin.put_input("price", type="float", label="What is the current price of bitcoin?", value=query_bitcoinprice()),
+            pin.put_input("price", type="float", label="What is the current price of bitcoin?", value=get_price()),
             output.put_button("refresh price", onclick=updateprice)
             ]),
         output.put_column(content=[

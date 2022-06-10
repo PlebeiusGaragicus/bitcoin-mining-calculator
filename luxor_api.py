@@ -10,17 +10,8 @@
 
 # import packages
 import json
-import logging
 import requests
 from typing import Dict, Any
-
-# set logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(),
-              logging.FileHandler('requests.log')])
-
 
 class API:
     """
@@ -52,8 +43,7 @@ class API:
     def __init__(self,
                  host: str,
                  key: str,
-                 method: str,
-                 verbose: bool = False):
+                 method: str):
         """
         Parameters
         ----------
@@ -72,15 +62,11 @@ class API:
 
         params : str
             API request PARAMS. Default is an empty string.
-
-        verbose : boolean
-            Boolean flag that controls if API querys are logged.
         """
 
         self.host = host
         self.key = key
         self.method = method
-        self.verbose = verbose
 
     def request(self, query: str, params: Dict[str, Any] = None):
         """
@@ -101,9 +87,6 @@ class API:
 
         s = requests.Session()
         s.headers = headers
-
-        if self.verbose:
-            logging.info(query)
 
         response = s.request(self.method,
                              self.host,
