@@ -102,13 +102,12 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> in
         block_fee = int(block_data.split('"fee":')[1].split(',')[0])
         height = int(block_data.split('"height":')[1].split(',')[0])
         total_fee += block_fee
-        #output.put_markdown(f"```block: {height} --> fee: {block_fee:,}```", scope='init')
         block_height = int(block_data.split('"block_index":')[1].split(',')[0])
         latest_hash = block_data.split('"prev_block":')[1].split(',')[0].strip('"')
-        print("block: ", block_height, " -->  fee: ", format(block_fee, ',').rjust(11), " satoshi")
+        logging.debug(f"block: {block_height} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")
 
     total_fee /= nBlocks
-    print(f"Average fee per block in last {nBlocks} blocks:", f'{total_fee:,.0f}')
+    logging.debug(f"Average fee per block in last {nBlocks} blocks: {total_fee:,.0f}")
     return total_fee
 
 def get_price() -> float:

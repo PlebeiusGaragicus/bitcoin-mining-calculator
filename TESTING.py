@@ -1,3 +1,5 @@
+import logging
+
 from luxor_api import API
 # keep it secret... keep it safe
 import apikey
@@ -11,7 +13,7 @@ def query_bitcoinprice_luxor():
 
         avg = (price[1]['open'] + price[-1]['open']) / 2
     except Exception as e:
-        print("Exception", e)
+        logging.exception('')
         return -1
 
     return avg

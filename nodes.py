@@ -39,7 +39,7 @@ def useful_node():
     logging.info(node_info)
 
     if ibd == True:
-        print(f"ERROR: your node is currently downloading the blockchain, it is not fully sync'd yet ({float(progress * 100):.0f}% downloaded)")
+        logging.error(f"ERROR: your node is currently downloading the blockchain, it is not fully sync'd yet ({float(progress * 100):.0f}% downloaded)")
         return None
 
     logging.info(f"This node appears up-to-date - we can use it!")
@@ -100,13 +100,11 @@ def node_avgblockfee(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
                 logging.exception()
                 # this error happens if the popup was closed
                 return round(total_fee / (1 + bdx - blockheight + nBlocks), 2)
-            #print("block: ", bdx, " -->  fee: ", format(block_fee, ',').rjust(11), " satoshi")
             logging.info(f"block: {bdx} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")
 
     output.close_popup()
 
     total_fee /= nBlocks
 
-    #print(f"average block fee over last {nBlocks} blocks is {total_fee:,.2f} satoshi")
     logging.info(f"average block fee over last {nBlocks} blocks is {total_fee:,.2f} satoshi")
     return round(total_fee, 2)
