@@ -12,44 +12,57 @@ from plotly.subplots import make_subplots
 
 from constants import *
 
-
-# TODO find source code in bitcoin
+# https://github.com/bitcoin/bitcoin/blob/b71d37da2c8c8d2a9cef020731767a6929db54b4/src/validation.cpp#L1479-L1490
 def block_subsity( height ):
+    """
+        This returns the coinbase reward in satoshi for a given block height
+    """
     return (50 * ONE_HUNDRED_MILLION) >> (height // SUBSIDY_HALVING_INTERVAL)
 
-# TODO find source code in bitcoin - (is this even in the code?)
 def blocks_until_halvening(block_height):
+    """
+        This tells you how many blocks until the next halvening
+    """
     return ((block_height // SUBSIDY_HALVING_INTERVAL + 1) * SUBSIDY_HALVING_INTERVAL) - block_height
 
 
-def usd(sats, price):
+def fiat(sats, price):
+    """
+        Convert sats into fiat at given price of bitcoin
+    """
     return sats * (price / ONE_HUNDRED_MILLION)
 
-def btc(dollars, price):
-    return int(ONE_HUNDRED_MILLION * (dollars / price))
+def btc(fiat, price):
+    """
+        Convert fiat into sats at given price of bitcoin
+    """
+    return int(ONE_HUNDRED_MILLION * (fiat / price))
 
 
 
 ##########################
 def calculate_projection(
-                            months,
-                            height,
-                            avgfee, 
-                            hashrate,
-                            wattage,
-                            price,
-                            pricegrow,
-                            pricegrow2, 
-                            pricelag,
-                            networh_hashrate,
-                            hashgrow,
-                            kWh_rate,
-                            opex,
-                            capex,
-                            resale_upper,
-                            resale_lower,
-                            poolfee
-                        ):
+                        months,
+                        height,
+                        avgfee, 
+                        hashrate,
+                        wattage,
+                        price,
+                        pricegrow,
+                        pricegrow2, 
+                        pricelag,
+                        networh_hashrate,
+                        hashgrow,
+                        kWh_rate,
+                        opex,
+                        capex,
+                        resale_upper,
+                        resale_lower,
+                        poolfee
+                    ):
+    """
+        The meat and potatoes function.  Yummy.
+    """
 
     res = {
         # THESE ARE THE INPUTS TO THE CALCULATION
@@ -92,7 +105,7 @@ def calculate_projection(
         KEY_BREAKEVEN_NH : [], # at estimated price
     }
 
-    dollar_capex = usd(capex, price=price)
+    dollar_capex = fiat(capex, price=price)
 
     # have we crossed a halvening?  We use this to determine which growth factor to use with price/nh
     crossed = False
@@ -305,13 +318,13 @@ def pretty_graph(res):
 
 ##########################
 def make_table_string(res) -> str:
-    # https://docs.python.org/3/library/string.html
 # 1       2              3                             4
-    str_table = """
-| month | block height | network hashrate (exahash) | btc price |
-| :--- | ---: | ---: | ---: |
-"""
-# 1       2      3      4   
+    str_table = \
+    """
+    | month | block height | network hashrate (exahash) | btc price |
+    | :--- | ---: | ---: | ---: |
+    """
+    # 1         2      3      4   
 
                             #    1    2    3    4 
     str_table_row_format = """| %s | %s | %s | %s |"""

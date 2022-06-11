@@ -14,27 +14,6 @@ from pywebio import session
 from data import get_price
 from constants import ONE_HUNDRED_MILLION
 
-#ONE_HUNDRED_MILLION = 100_000_000
-
-# def query_bitcoinprice() -> float:
-#     """
-#         - queries the current bitcoin price from the coindesk.com API
-#         - returns (-1) on error
-#         - shell one-liner:
-#             - alias btcprice = "curl -s 'https://api.coinbase.com/v2/prices/spot?currency=USD' | jq -r '.data.amount'"
-#     """
-
-#     try:
-#         API_URL = 'https://api.coinbase.com/v2/prices/spot?currency=USD'
-#         response = ur.urlopen(ur.Request( API_URL )).read()
-#         data = json.loads(response) # returns dict
-#         price = float( data['data']['amount'] )
-#     except:
-#         return -1
-
-#     return price
-
-
 if __name__ == '__main__':
     def updateprice():
         pin.pin['price'] = get_price()
@@ -47,7 +26,7 @@ if __name__ == '__main__':
 
         output.put_text(f"[{amnt:,.2f} dollars @ price:{price:,.2f}] = {r:,.2f} satoshi")
 
-    def convert_to_usd():
+    def convert_to_fiat():
         amnt = float(pin.pin["amount"])
         price = float(pin.pin["price"])
         r = amnt * (price / ONE_HUNDRED_MILLION)
@@ -62,7 +41,7 @@ if __name__ == '__main__':
         output.put_column(content=[
             pin.put_input("amount", type="float", label="Amount to convert"),
             output.put_column(content=[
-                output.put_button("sats -> dollars", onclick=convert_to_usd),
+                output.put_button("sats -> dollars", onclick=convert_to_fiat),
                 output.put_button("dollars -> sats", onclick=convert_to_sat)
                 ])
             ])

@@ -1,6 +1,3 @@
-# THANKS LUXOR!!! <3 <3
-# slightly modified for my convenience...
-
 # https://hashrateindex.com/blog/energy-curtailment-strike-price-api/
 # https://github.com/LuxorLabs/hashrateindex-api-python-client  
 # https://data.hashrateindex.com/network-data/btc
@@ -8,6 +5,10 @@
 
 """
 This module (provided by Luxor and modified by myself) interfaces with their API
+
+THANKS LUXOR!!!
+
+<3 <3
 """
 
 import json

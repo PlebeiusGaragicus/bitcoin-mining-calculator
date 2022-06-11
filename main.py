@@ -13,7 +13,6 @@ from pywebio import pin
 from pywebio import output
 from pywebio import session
 
-
 from constants import *
 from nodes import *
 from popups import *
@@ -21,32 +20,21 @@ from data import *
 from webio import *
 from calcs import *
 
-# mainlogger.basicConfig(
-#     level=logging.ERROR,
-#     format="%(asctime)s [%(levelname)s] %(message)s",
-#     handlers=[logging.StreamHandler(),
-#               logging.FileHandler('mining-calcs.log', mode='w')])
-
-
 def init():
     """
         This tries to get the latest bitcoin network data + price
     """
     # make init a popup??? but you can't have a popup call a popup..... maybe the popup will appear when data is being downloaded!!!
-    #with output.use_scope('init', clear=True):
 
     path = useful_node()
 
     if path != None:
-        #output.put_text("Getting data from node...", scope='init')
-
         h = node_blockheight(path)
 
         f = node_avgblockfee(path)
         #f = node_avgblockfee_popup(path, nBlocks)
         nh = node_networkhashps(path)
-        
-        #output.put_text("Getting price of bitcoin...", scope='init')
+
         p = get_price() # query_bitcoinprice()
 
         if p == -1:
@@ -78,7 +66,6 @@ def init():
 
 ###############################
 def main():
-#if __name__ == '__main__':
     session.set_env(title="bitcoin mining profit calculator")
 
     # https://pywebio.readthedocs.io/en/latest/platform.html
@@ -98,7 +85,6 @@ def main():
 
 #############################
 if __name__ == '__main__':
-
     #logging.getLogger(__name__)
     logging.basicConfig(
         level=logging.DEBUG,

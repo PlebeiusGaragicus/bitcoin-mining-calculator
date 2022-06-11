@@ -17,9 +17,9 @@ from constants import *
 from data import *
 
 
-###################################### THIS FUNCTION ROCKS!!!!!!!!! SAVE THIS!!!!!!!
-#def popup_input(pins, names, title):
-# onchangepinname='examples', onchange=changeentries)
+#########################################################################
+# shamelessly stolen from here and modified
+# https://pywebio.readthedocs.io/en/latest/_modules/pywebio_battery/interaction.html#popup_input
 def popup_input(pins, names, title, onchangepinname=None, callback=None):
     """
         Show a form in popup window.
@@ -55,14 +55,11 @@ def popup_input(pins, names, title, onchangepinname=None, callback=None):
 
     return {name: pin.pin[name] for name in names}
 
-
-
-
 #################################
 def popup_get_price_from_user():
     """
-        This creates a pop-up that asks the user for the bitcoin price
-        This is used if we were unable to download the price from the internet
+        This creates a popup that asks the user for the bitcoin price
+        This is used if we can't download the price from the internet
     """
     result = popup_input([
         pin.put_input('price', label='bitcoin price', type='float', value=pin.pin[PIN_BTC_PRICE_NOW])
@@ -80,11 +77,10 @@ def popup_get_price_from_user():
 
     return p
 
-
 #####################################
 def popup_get_stats_from_user() -> bool:
     """
-        this pop up asks the user for network stats
+        This pop up asks the user for network stats - used when we can't get data from a node or the internet
     """
     result = popup_input([
         pin.put_input('in_height', label='block height', type='number', value=pin.pin[PIN_HEIGHT]),
@@ -131,15 +127,11 @@ def popup_get_stats_from_user() -> bool:
 
     return True
 
-
-
-
-
-
-
-
 ##############################
 def popup_currencyconverter():
+    """
+        This popup allows you to convert from fiat to bitcoin and back
+    """
     def updateprice():
         pin.pin['convertprice'] = get_price() # query_bitcoinprice()
 
@@ -155,7 +147,7 @@ def popup_currencyconverter():
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
         pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
 
-    def convert_to_usd():
+    def convert_to_fiat():
         try:
             amnt = float(pin.pin["amount"])
             price = float(pin.pin["convertprice"])
@@ -176,7 +168,7 @@ def popup_currencyconverter():
             output.put_column(content=[
                 pin.put_input("amount", type="float", label="Amount to convert"),
                 output.put_column(content=[
-                    output.put_button("sats -> dollars", onclick=convert_to_usd),
+                    output.put_button("sats -> dollars", onclick=convert_to_fiat),
                     output.put_button("dollars -> sats", onclick=convert_to_sat)
                     ])
                 ])
@@ -184,21 +176,25 @@ def popup_currencyconverter():
         pin.put_textarea("result", label="Result:", value="", readonly=True)
     ], closable=True)
 
-
+######################
 def showstepbystep():
-    # use 1TH and show calculation for hash value.. ETC ETC ETC
     output.toast("not implemented yet... sorry")
 
+###################
 def feeanalysis():
     output.toast("not implemented yet... sorry")
 
+#######################
 def hashratehistory():
-    # https://www.tradingview.com/
     output.toast("not implemented yet... sorry")
 
+########################################################################################
 # https://github.com/LuxorLabs/hashrateindex-api-python-client/blob/master/resolvers.py
-# we can do our own dataframes... thank you very much... :/
+# Pssh... we can do our own dataframes... thank you very much... :/
 def pricehistory():
+    """
+        This is the popup that shows the price history of bitcoin
+    """
     price_df = get_luxor_price_as_df()
 
     fig = go.Figure(data=go.Ohlc(x=price_df['timestamp'],
@@ -212,14 +208,3 @@ def pricehistory():
     output.popup('bitcoin price history', content=[
             output.put_html(pr)
         ], closable=True)
-
-
-
-
-
-
-
-# def popup_template():
-#     output.popup('NAME THIS SHIT', content=[
-#         output.put_text("nothing yet, bro")
-#     ], closable=True)

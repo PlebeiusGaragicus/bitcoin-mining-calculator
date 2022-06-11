@@ -6,3 +6,4 @@
 # explains and catches common errors and helps the user through them
 # Umm... and other things
 
+python3 main.py

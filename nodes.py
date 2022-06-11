@@ -4,7 +4,7 @@
 """
 Bro, do you even run a bitcoin node?
 If so, this module helps pull sweet, sweet datums from it.
-Mmmm, datums... :()
+Mmmm, datums... <(O.o)>
 """
 
 import logging
@@ -17,6 +17,7 @@ from pywebio import pin
 
 from constants import *
 
+###################
 def useful_node():
     """
         returns path to bitcoin-cli if node is (1) found, (2) running, (3) up-to-date - not in IDB
@@ -54,36 +55,44 @@ def useful_node():
 
     return bin_path
 
-
+########################################
 def node_blockheight(bcli_path) -> int:
     """
-    this will run bitcoin-cli at the supplied path
-    TODO - provide link to bitcoin documentatiopn of 'getblockcount'
+        basically just runs the 'getblockhash' command
+        https://developer.bitcoin.org/reference/rpc/getblockcount.html
     """
-    return int(os.popen(f"{bcli_path} getblockcount").read())
+    ret = int(os.popen(f"{bcli_path} getblockcount").read())
+    # TODO sanitize???
+    return ret
 
-
+##############################################
 def node_blockhash(bcli_path, height) -> int:
     """
-        TODO - I need a link to bitcoin documentation here
+        basically just runs the 'getblockhash' command
+        https://developer.bitcoin.org/reference/rpc/getblockhash.html
     """
-    return os.popen(f"{bcli_path} getblockhash {height}").read()
+    ret = os.popen(f"{bcli_path} getblockhash {height}").read()
+    #TODO sanitize ret?  hmmmmmmmmmmm
+    return ret
 
 
-def node_networkhashps(bcli_path, nblocks=120, height=-1) -> float: # use -1 for nblocks to go since last diff change
+
+# TODO - use -1 for nblocks to go since last diff change
+####################################################################
+def node_networkhashps(bcli_path, nblocks=120, height=-1) -> float:
     """
+        basically just runs the 'getnetworkhashps' command
+        https://developer.bitcoin.org/reference/rpc/getnetworkhashps.html
     """
-    # https://developer.bitcoin.org/reference/rpc/getnetworkhashps.html
     nh = os.popen(f"{bcli_path} getnetworkhashps {nblocks} {height}").read()
+
+    #TODO sanitize nh????????
     return float( nh.split('\n')[0] ) / TERAHASH
 
-
-
-
-
-##########################################################################
+###########################################################################
 def node_avgblockfee(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
     """
+        This will return the average fee going back nBlocks using the bitcoin cli at the provided path
     """
     blockheight = int(os.popen(f"{bcli_path} getblockcount").read())
 
