@@ -1,5 +1,5 @@
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 """
 This module gets bitcoin network data from the internets if you don't have a bitcoin archive node.

@@ -1,5 +1,5 @@
 # Distributed under the MIT software license, see the accompanying
-# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+# file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 """
 This module is a stand-alone tool to help convert between dollars (or any fiat, really) and the bitcoins
