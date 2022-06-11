@@ -2,19 +2,15 @@
 This tools helps you decide when to invest in bitcoin mining equipment
 
 # INSTALL
-```
+```sh
 git clone https://github.com/PlebeiusGaragicus/bitcoin-mining-calculator.git
 cd bitcoin-mining-calculator
 
 python3 -m venv venv/
 source venv/bin/activate
 
-pip install -r requirements.txt
-```
-
-mac's need this...
-```
 python3 -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
 # Goals and Intent
@@ -31,3 +27,17 @@ python3 -m pip install --upgrade pip
 
 - https://insights.braiins.com/en/profitability-calculator/
 - https://github.com/LuxorLabs
+
+# TODO
+
+- uhhh.. make sure it works.  The projection/graph is not accurate
+- make the graph pretty-er
+- change startup 'init' ... don't make it count fees at startup... have the user do it later
+- add miner break-even analyzis popup
+- block fee analysis popup
+- price history analysis popup
+- network hashrate analysis popup, moving average, future projection, etc etc etc...
+- CSV file download of projection table
+- put more datums in the table... TABLE DATUMMMMSSS.... <3
+- Integrate spruned repo (one click install, catch and diagnose all errors - be easy to use)
+- +/- 5% TH on the miner?

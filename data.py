@@ -24,6 +24,8 @@ try:
     API_KEY = apikey.LUXOR_API_KEY
 except ModuleNotFoundError as e:
     API_KEY = None
+    # we don't want to use the logging module here because it will init and run basicConfig()
+    # we don't want that becuase you can only run basicConfig once and we do that in main()
     print("You don't seem to have a LUXOR api key.  That's ok")
 
 
@@ -32,6 +34,9 @@ from constants import *
 ########################################
 # https://github.com/LuxorLabs/hashrateindex-api-python-client
 def get_stats_from_luxor() -> bool:
+    """
+        This gets the needed bitcoin network data from Luxor's beautiful API
+    """
     if API_KEY == None:
         return False
 
@@ -76,10 +81,10 @@ def get_stats_from_luxor() -> bool:
 
     return True
 
-
-
+#############################
 def get_luxor_price_as_df():
     """
+        I couldn't tell you what a data frame is.. but this function returns one
         returns None on error
     """
     if API_KEY == None:
@@ -100,6 +105,7 @@ def get_luxor_price_as_df():
 ########################################
 def get_stats_from_internet() -> bool:
     """
+        This gets the needed bitcoin network data from blockchain.info :)
         https://www.blockchain.com/api/q
     """
     output.put_text("Gathering data from blockchain.info...", scope='init')
@@ -125,8 +131,6 @@ def get_stats_from_internet() -> bool:
     pin.pin[PIN_NETWORKHASHRATE] = nh
 
     return True
-
-
 
 ########################################
 # https://www.blockchain.com/api/blockchain_api
@@ -169,13 +173,12 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> in
     logging.debug(f"Average fee per block in last {nBlocks} blocks: {total_fee:,.0f}")
     return round(total_fee, 2)
 
-
-
-
-
-
 ############################
 def get_price() -> float:
+    """
+        This will return the price of bitcoin, first using luxor api and then coinbase on failure
+        Returns -1 on error
+    """
     logging.debug("Getting price of bitcoin...")
     p = query_bitcoinprice_luxor()
 
@@ -186,11 +189,6 @@ def get_price() -> float:
         return -1
     else:
         return p
-
-
-
-
-
 
 ########################################
 def query_bitcoinprice_luxor() -> float:
@@ -218,11 +216,9 @@ def query_bitcoinprice_luxor() -> float:
 ##################################
 def query_bitcoinprice_coinbase() -> float:
     """
-        - queries the current bitcoin price from the coindesk.com API
-
-        - returns (-1) on error
-
-        - shell one-liner:
+        queries the current bitcoin price from the coindesk.com API
+        returns (-1) on error
+        shell one-liner:
             - alias btcprice = "curl -s 'https://api.coinbase.com/v2/prices/spot?currency=USD' | jq -r '.data.amount'"
     """
 

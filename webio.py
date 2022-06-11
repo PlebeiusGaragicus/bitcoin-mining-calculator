@@ -23,14 +23,14 @@ from calcs import *
 analysisnumber = 0
 
 
-###############################
+#######################
 def show_projection():
     """
         THIS FUNCTION TAKES THE VALUES FROM THE INPUT FIELDS AND RUNS THE PROJECTION...
-        TODO - I HAVE TO FUCKING SANITIZE THE INPUTS!!!!!!! DO IT ALL AT-ONCE HERE!
+        TODO - SANITIZE THE INPUTS!
     """
 
-    logging.info("show_projection()")
+    logging.info("running show_projection()")
 
     try:
         hashrate = float(pin.pin[PIN_HASHRATE])
@@ -239,10 +239,11 @@ def show_settings():
 
 
 
-
-
-# THESE FUNCTIONS ARE CALLED BY THE SLIDER PIN CALLBACK AND ADJUST THE PIN INPUT THEY CORRESPOND
+##################################
 def pricegrow_slider( v: float ):
+    """
+        # TODO
+    """
     try:
         pin.pin[PIN_PRICEGROW] = round(v, 2)
     except Exception as e:
@@ -251,7 +252,11 @@ def pricegrow_slider( v: float ):
         return
     show_projection()
 
+###################################
 def pricegrow2_slider( v: float ):
+    """
+        # TODO
+    """
     try:
         pin.pin[PIN_PRICEGROW2] = round(v, 2)
     except Exception as e:
@@ -260,7 +265,11 @@ def pricegrow2_slider( v: float ):
         return
     show_projection()
 
+#################################
 def hashgrow_slider( v: float ):
+    """
+        # TODO
+    """
     try:
         pin.pin[PIN_HASHGROW] = round(v, 2)
     except Exception as e:
@@ -269,6 +278,7 @@ def hashgrow_slider( v: float ):
         return
     show_projection()
 
+############################
 def eff_slider( v: float ):
     """
         THIS IS THE CALLBACK FOR THE SLIDER
@@ -297,6 +307,7 @@ def eff_slider( v: float ):
         return
     #show_projection()
 
+##########################################
 def hashrate_waschanged(hashrate: float):
     """
         THIS IS THE CALLBACK FOR PIN_HASHRATE ONCHANGE=
@@ -322,6 +333,7 @@ def hashrate_waschanged(hashrate: float):
         if not boughtatprice == None:
             pin.pin[PIN_SAT_PER_TH] = round(ONE_HUNDRED_MILLION * (usd_cost_of_miner/boughtatprice) / hashrate, 2)
 
+########################################
 def wattage_waschanged(wattage: float):
     """
         THIS IS THE CALLBACK FOR PIN_WATTAGE ONCHANGE=
@@ -336,8 +348,11 @@ def wattage_waschanged(wattage: float):
 
     pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = round(wattage / pin.pin[PIN_HASHRATE], 1)
 
-
+###########################################
 def cost_slider(usd_cost_of_miner: float):
+    """
+        # TODO
+    """
     try:
         hr = float(pin.pin[PIN_HASHRATE])
         dollarsperth = usd_cost_of_miner / hr
@@ -357,7 +372,11 @@ def cost_slider(usd_cost_of_miner: float):
         logging.debug("", exc_info=True)
         return
 
+###############################################
 def boughtatprice_waschanged(newprice: float):
+    """
+        # TODO
+    """
     if newprice == None or newprice < 1:
         pin.pin[PIN_SAT_PER_TH] = ''
         return
@@ -378,7 +397,7 @@ def boughtatprice_waschanged(newprice: float):
     # call this to adjust everything else along with it
     # adjust_cost( float(pin.pin[PIN_COST]) )
 
-
+##################################
 def cost_waschanged(cost: float):
     # if pin.pin[PIN_WATTAGE] == None or pin.pin[PIN_WATTAGE] < 1:
     #     return
@@ -413,8 +432,9 @@ def cost_waschanged(cost: float):
     pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (cost/btcuponpurchase):,.1f} sats")
     pin.pin[PIN_SAT_PER_TH] = f"{round(btc(cost, price=btcuponpurchase) / hr, 1):,.2f}"
 
-def neversell_waschanged( o ):
-    if OPTION_NEVERSELL in o:
+###############################
+def neversell_waschanged( opt ):
+    if OPTION_NEVERSELL in opt:
         # NEVER SELL
         pin.pin_update(name=PIN_RESELL_UPPER, readonly=True)
         pin.pin_update(name=PIN_RESELL_LOWER, readonly=True)
@@ -425,6 +445,7 @@ def neversell_waschanged( o ):
         pin.pin_update(name=PIN_RESELL_LOWER, readonly=False)
         pin.pin_update(name=PIN_MONTHSTOPROJECT, label="Months until you re-sell this miner")
 
+####################################
 def upperresale_waschanged(v: int):
     try:
         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_UPPER] / 100)
@@ -433,6 +454,7 @@ def upperresale_waschanged(v: int):
         logging.debug("", exc_info=True)
         return
 
+####################################
 def lowerresale_waschanged(v: int):
     try:
         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_LOWER] / 100)
@@ -442,6 +464,7 @@ def lowerresale_waschanged(v: int):
         return
     pass
 
+##########################################
 def hashgrow_waschanged( newval: float ):
     if newval == None:
         return
@@ -452,7 +475,7 @@ def hashgrow_waschanged( newval: float ):
     pin.pin_update(PIN_HASHGROW_SLIDER, value=newval)
     pin.pin[PIN_HASHGROW_SLIDER] = newval
 
-
+#######################################
 def avgfee_waschanged( newval: float):
     if newval == None:
         n = ''
