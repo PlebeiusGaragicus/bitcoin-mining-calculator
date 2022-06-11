@@ -6,8 +6,8 @@ This tools helps you decide when to invest in bitcoin mining equipment
 git clone https://github.com/PlebeiusGaragicus/bitcoin-mining-calculator.git
 cd bitcoin-mining-calculator
 
-python3 -m venv .venv/
-source .venv/bin/activate
+python3 -m venv venv/
+source venv/bin/activate
 
 pip install -r requirements.txt
 ```
