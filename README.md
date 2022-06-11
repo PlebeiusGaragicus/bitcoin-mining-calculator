@@ -14,7 +14,7 @@ pip install -r requirements.txt
 
 mac's need this...
 ```
-/Users/coder/Desktop/bitcoin-mining-calculator/.venv/bin/python3.9 -m pip install --upgrade pip
+python3 -m pip install --upgrade pip
 ```
 
 
