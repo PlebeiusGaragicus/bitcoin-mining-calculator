@@ -1,3 +1,12 @@
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+"""
+Bro, do you even run a bitcoin node?
+If so, this module helps pull sweet, sweet datums from it.
+Mmmm, datums... :()
+"""
+
 import logging
 
 import os

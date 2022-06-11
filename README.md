@@ -17,8 +17,7 @@ mac's need this...
 python3 -m pip install --upgrade pip
 ```
 
-
-# goals and intent
+# Goals and Intent
 - To calculate the potential earnings of any bitcoin miner
 - To be an open-source example of - and alternative to - bitcoin mining profitability calculators found online today (in 2022)
 - To teach the incentives behind bitcoin mining and to encourage at-home bitcoin mining
@@ -27,3 +26,8 @@ python3 -m pip install --upgrade pip
 - To inspire the next generation of coders to develop open source tools for bitcoin and the world
 - To remind you that you don't have to be an expert in order to participate in this global human network
 - To spread the love and the bitcoin
+
+# I stand on the shoulders of giants...
+
+- https://insights.braiins.com/en/profitability-calculator/
+- https://github.com/LuxorLabs

@@ -1,3 +1,10 @@
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+"""
+This module contains the functions for all the cool popups ;)
+"""
+
 import threading
 
 from pywebio import pin

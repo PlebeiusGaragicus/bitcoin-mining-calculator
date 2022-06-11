@@ -6,8 +6,10 @@
 # https://data.hashrateindex.com/network-data/btc
 # https://hashrateindex.com/
 
+"""
+This module (provided by Luxor and modified by myself) interfaces with their API
+"""
 
-# import packages
 import json
 import requests
 from typing import Dict, Any
