@@ -32,7 +32,7 @@ def show_projection():
         poolfee = float(pin.pin[PIN_POOLFEE] / 100)
         rate = float(pin.pin[PIN_KWH_RATE])
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         output.toast("Something went wrong - make sure you didn't leave anything blank!")
         return
 
@@ -238,7 +238,7 @@ def pricegrow_slider( v: float ):
     try:
         pin.pin[PIN_PRICEGROW] = round(v, 2)
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         output.toast("Price growth metric can't be blank.")
         return
     show_projection()
@@ -247,7 +247,7 @@ def pricegrow2_slider( v: float ):
     try:
         pin.pin[PIN_PRICEGROW2] = round(v, 2)
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         output.toast("Post-halvening price growth metric can't be blank.")
         return
     show_projection()
@@ -256,7 +256,7 @@ def hashgrow_slider( v: float ):
     try:
         pin.pin[PIN_HASHGROW] = round(v, 2)
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         output.toast("Hash growth metric can't be blank")
         return
     show_projection()
@@ -284,7 +284,7 @@ def eff_slider( v: float ):
         pin.pin_update(PIN_SAT_PER_TH, help_text=f"${dollarsperth:,.2f} / TH")
         pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=boughtatprice) / hr, 1):,.2f}"
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         output.toast("Enter in mining equipment details first.")
         return
     #show_projection()
@@ -294,9 +294,12 @@ def hashrate_waschanged(hashrate: float):
         THIS IS THE CALLBACK FOR PIN_HASHRATE ONCHANGE=
         it updates PIN_EFF and PIN_EFF_SLIDER slider
     """
+    if hashrate == None:
+        return
+
     if not pin.pin[PIN_WATTAGE] == None and pin.pin[PIN_WATTAGE] >= 1:
         pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = round(pin.pin[PIN_WATTAGE] / hashrate, 2)
-    
+
     if hashrate == None or hashrate < 1:
         pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = 0
         return
@@ -316,10 +319,11 @@ def wattage_waschanged(wattage: float):
         THIS IS THE CALLBACK FOR PIN_WATTAGE ONCHANGE=
         it updates PIN_EFF and PIN_EFF_SLIDER slider
     """
-    if pin.pin[PIN_HASHRATE] == None or pin.pin[PIN_HASHRATE] < 1:
-        return
     if wattage == None or wattage < 1:
         pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = 0
+        return
+
+    if pin.pin[PIN_HASHRATE] == None or pin.pin[PIN_HASHRATE] < 1:
         return
 
     pin.pin[PIN_EFF] = pin.pin[PIN_EFF_SLIDER] = round(wattage / pin.pin[PIN_HASHRATE], 1)
@@ -342,7 +346,7 @@ def cost_slider(usd_cost_of_miner: float):
         pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (usd_cost_of_miner/new_boughtatprice):,.1f} sats")
         #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, price=newprice) / hr, 1)
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         return
 
 def boughtatprice_waschanged(newprice: float):
@@ -354,7 +358,7 @@ def boughtatprice_waschanged(newprice: float):
         usd_cost_of_miner = float(pin.pin[PIN_COST])
         hr = float(pin.pin[PIN_HASHRATE])
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         pin.pin[PIN_SAT_PER_TH] = ''
         pin.pin[PIN_COST_SLIDER] = ''
         return
@@ -395,7 +399,7 @@ def cost_waschanged(cost: float):
 
         btcuponpurchase = float(pin.pin[PIN_BOUGHTATPRICE])
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         return
     
     pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (cost/btcuponpurchase):,.1f} sats")
@@ -418,7 +422,7 @@ def upperresale_waschanged(v: int):
         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_UPPER] / 100)
         pin.pin_update(PIN_UPPER_READONLY, value=v)
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         return
 
 def lowerresale_waschanged(v: int):
@@ -426,7 +430,7 @@ def lowerresale_waschanged(v: int):
         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_LOWER] / 100)
         pin.pin_update(PIN_LOWER_READONLY, value=v)
     except Exception as e:
-        logging.exception()
+        logging.debug("", exc_info=True)
         return
     pass
 

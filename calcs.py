@@ -69,12 +69,6 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
         KEY_BREAKEVEN_NH : [], # at estimated price
     }
 
-    # TODO VARIABLES TO ADD\
-    # start price
-    # avg blk sub
-
-
-    # TODO - the 
     dollar_capex = usd(capex, price=price)
 
     # have we crossed a halvening?  We use this to determine which growth factor to use with price/nh
@@ -121,7 +115,6 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
 
         # END OF MONTH STUFF - now we have to settle
 
-
         # if we have crossed the halvening AND it's been 'LAG MONTHS' since... use pricegrow2
         if crossed and m - month_we_crossed >= pricelag:
             price *= 1 + pricegrow2
@@ -131,10 +124,6 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
             price *= 1 + pricegrow # 1 + pricegrow / 30 # daily
             logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
 
-        # TODO
-        # if no profit
-            # unplug
-        # if duck, fuck, squeeze... log it!
 
         sold_e = btc(_kwh * kWh_rate, price=price)
         sold_o = btc(opex, price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
@@ -145,7 +134,16 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
         sold_c = capex / months #already in btc terms
         #sold_c = capex / months #already in btc terms
 
+        # basically, just the decision/assumption-making/verifying helper variables
+        #beprice = hashvalue * ((_kwh * cost_kWh) + (sold_c) + (opex / us.total_terahash())) / ONE_HUNDRED_MILLION
+        #beprice = ((_kwh * cost_kWh) + (dollar_capex) + (opex / us.total_terahash())) / hashvalue * ONE_HUNDRED_MILLION
         breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (hashvalue - sold_c)
+
+        #if not crossed and 
+        # TODO
+        # if no profit
+            # unplug
+        # if duck, fuck, squeeze... log it!
 
         # duck fuck squeeze
         # if sold_e + sold_o + sold_c > hashvalue:
@@ -165,10 +163,6 @@ def calculate_projection(months, height, avgfee, hashrate, wattage, price, price
         res[KEY_SOLD_ELECTRICITY].append( sold_e )
         res[KEY_SOLD_OPEX].append( sold_o )
         res[KEY_SOLD_CAPEX].append( sold_c )
-
-        # basically, just the decision/assumption-making/verifying helper variables
-        #beprice = hashvalue * ((_kwh * cost_kWh) + (sold_c) + (opex / us.total_terahash())) / ONE_HUNDRED_MILLION
-        #beprice = ((_kwh * cost_kWh) + (dollar_capex) + (opex / us.total_terahash())) / hashvalue * ONE_HUNDRED_MILLION
 
         res[KEY_BREAKEVEN_PRICE].append( breakeven_price )
         # KEY_BREAKEVEN_PRICE_P20P : [],
@@ -288,10 +282,6 @@ def pretty_graph(res):
 
 ##########################
 def make_table_string(res) -> str:
-    #verbose = bool(pin.pin['verbose'])
-    #log it ("verbose:", verbose)
-
-
     # https://docs.python.org/3/library/string.html
 # 1       2              3                             4
     str_table = """

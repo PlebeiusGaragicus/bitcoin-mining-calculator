@@ -3,6 +3,9 @@ import threading
 from pywebio import pin
 from pywebio import output
 
+import plotly.graph_objects as go
+import pandas as pd
+
 from constants import *
 from data import *
 
@@ -140,7 +143,7 @@ def popup_currencyconverter():
             if amnt < 0 or price < 0:
                 return
         except Exception as e:
-            logging.exception()
+            logging.debug("", exc_info=True)
             return
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
         pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
@@ -152,7 +155,7 @@ def popup_currencyconverter():
             if amnt < 0 or price < 0:
                 return
         except Exception as e:
-            logging.exception()
+            logging.debug("", exc_info=True)
             return
         r = amnt * (price / ONE_HUNDRED_MILLION)
         pin.pin["result"] = f"{amnt:,.2f} sats @ ${price:,.2f} = ${r:,.2f}\n" + pin.pin['result']
@@ -186,6 +189,30 @@ def hashratehistory():
     # https://www.tradingview.com/
     output.toast("not implemented yet... sorry")
 
+# https://github.com/LuxorLabs/hashrateindex-api-python-client/blob/master/resolvers.py
+# we can do our own dataframes... thank you very much... :/
 def pricehistory():
-    # make a fucking moving average
-    output.toast("not implemented yet... sorry")
+    price_df = get_luxor_price_as_df()
+
+    fig = go.Figure(data=go.Ohlc(x=price_df['timestamp'],
+                        open=price_df['open'],
+                        high=price_df['high'],
+                        low=price_df['low'],
+                        close=price_df['close']))
+
+    pr = fig.to_html(include_plotlyjs="require", full_html=False)
+
+    output.popup('bitcoin price history', content=[
+            output.put_html(pr)
+        ], closable=True)
+
+
+
+
+
+
+
+# def popup_template():
+#     output.popup('NAME THIS SHIT', content=[
+#         output.put_text("nothing yet, bro")
+#     ], closable=True)

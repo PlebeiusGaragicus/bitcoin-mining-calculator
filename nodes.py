@@ -32,8 +32,7 @@ def useful_node():
         logging.info(f"Node in Initial Block Download? {ibd}")
         progress = float( node_info['verificationprogress'] )
     except Exception as e:
-        logging.info("Your bitcoin node does not appear to be running.")
-        #logging.exception("Your bitcoin node does not appear to be running.")
+        logging.warning("Your bitcoin node does not appear to be running.")
         return None
 
     logging.info(node_info)
@@ -70,10 +69,10 @@ def node_networkhashps(bcli_path, nblocks=120, height=-1) -> float: # use -1 for
     return float( nh.split('\n')[0] ) / TERAHASH
 
 
-#@output.popup("Averaging block transaction fees...")
-#def node_avgblockfee_popup(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
-#    return node_avgblockfee(bcli_path, nBlocks)
 
+
+
+##########################################################################
 def node_avgblockfee(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
     """
     """
@@ -90,14 +89,13 @@ def node_avgblockfee(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
         for bdx in range(blockheight-nBlocks, blockheight):
             block_fee = int( os.popen(f"""{bcli_path} getblockstats {bdx} '["totalfee"]'""").read().split(': ')[1].split('\n')[0] )        
             total_fee += block_fee
-            #output.put_markdown(f"```block: {bdx} --> fee: {block_fee:,}```")
             pin.pin['remaining'] = blockheight - bdx
             pin.pin['sofar'] = f"{ (total_fee / (1 + bdx - blockheight + nBlocks)) :,.2f}"
 
             try:
                 pin.pin['feescroller'] = f"block: {bdx} --> fee: {block_fee:,}\n" + pin.pin["feescroller"]
             except Exception as e:
-                logging.exception()
+                logging.debug("", exc_info=True)
                 # this error happens if the popup was closed
                 return round(total_fee / (1 + bdx - blockheight + nBlocks), 2)
             logging.info(f"block: {bdx} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")

@@ -40,7 +40,7 @@ def init():
 
         h = node_blockheight(path)
 
-        f = node_avgblockfee(path, nBlocks=1) #TODO DEBUG ONLY
+        f = node_avgblockfee(path)
         #f = node_avgblockfee_popup(path, nBlocks)
         nh = node_networkhashps(path)
         
