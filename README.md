@@ -3,8 +3,8 @@ This tools helps you decide when to invest in bitcoin mining equipment
 
 # INSTALL
 ```
-git clone https://github.com/PlebeiusGaragicus/mining-profit.git
-cd mining-profit
+git clone https://github.com/PlebeiusGaragicus/bitcoin-mining-calculator.git
+cd bitcoin-mining-calculator
 
 python3 -m venv .venv/
 source .venv/bin/activate
