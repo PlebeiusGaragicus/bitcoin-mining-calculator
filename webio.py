@@ -1,3 +1,11 @@
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+"""
+This module contains the callbacks to the pywebio fields and
+a lot of the code that runs the pywebio user interface
+"""
+
 import logging
 
 from pywebio import pin

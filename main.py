@@ -1,7 +1,9 @@
-# MICAH FULLERTON 2022
-# I stand on the shoulders of giants...
-# https://insights.braiins.com/en/profitability-calculator/
-# https://github.com/LuxorLabs
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+"""
+This is the main module that you run
+"""
 
 import threading
 import logging

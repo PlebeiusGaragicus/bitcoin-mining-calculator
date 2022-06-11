@@ -1,3 +1,12 @@
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+"""
+This module contains the constants used in this project
+"""
+
+
+######################################################################
 MAIN_TEXT = """# Open-Source Bitcoin Mining Profitability Calculator
 
 __The goal of this project is to inspire__ people to learn more about bitcoin's built-in incentive structure - mining.

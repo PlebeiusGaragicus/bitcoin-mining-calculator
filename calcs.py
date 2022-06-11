@@ -1,4 +1,9 @@
-# DO THE CALCULATIONS
+# Distributed under the MIT software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+"""
+This module is used to actually do the cool calculations ;)
+"""
 
 import logging
 
@@ -26,8 +31,26 @@ def btc(dollars, price):
 
 
 ##########################
- # TODO - FUTURE GENERALIZATION IMPROVEMENT@@@!!! , miner_list, network_stats):
-def calculate_projection(months, height, avgfee, hashrate, wattage, price, pricegrow, pricegrow2, pricelag, networh_hashrate, hashgrow, kWh_rate, opex, capex, resale_upper, resale_lower, poolfee):
+def calculate_projection(
+                            months,
+                            height,
+                            avgfee, 
+                            hashrate,
+                            wattage,
+                            price,
+                            pricegrow,
+                            pricegrow2, 
+                            pricelag,
+                            networh_hashrate,
+                            hashgrow,
+                            kWh_rate,
+                            opex,
+                            capex,
+                            resale_upper,
+                            resale_lower,
+                            poolfee
+                        ):
+
     res = {
         # THESE ARE THE INPUTS TO THE CALCULATION
         KEY_MONTHS_TO_PROJECT : months,
