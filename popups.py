@@ -143,7 +143,7 @@ def popup_currencyconverter():
             if amnt < 0 or price < 0:
                 return
         except Exception as e:
-            logging.exception('')
+            logging.debug("", exc_info=True)
             return
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
         pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
@@ -155,7 +155,7 @@ def popup_currencyconverter():
             if amnt < 0 or price < 0:
                 return
         except Exception as e:
-            logging.exception('')
+            logging.debug("", exc_info=True)
             return
         r = amnt * (price / ONE_HUNDRED_MILLION)
         pin.pin["result"] = f"{amnt:,.2f} sats @ ${price:,.2f} = ${r:,.2f}\n" + pin.pin['result']

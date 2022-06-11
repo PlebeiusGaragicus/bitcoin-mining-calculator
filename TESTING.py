@@ -13,7 +13,7 @@ def query_bitcoinprice_luxor():
 
         avg = (price[1]['open'] + price[-1]['open']) / 2
     except Exception as e:
-        logging.exception('')
+        logging.debug("", exc_info=True)
         return -1
 
     return avg

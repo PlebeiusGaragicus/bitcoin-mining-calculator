@@ -9,18 +9,29 @@ from pywebio import output
 import pandas as pd
 
 from luxor_api import API
-# keep it secret... keep it safe
-import apikey
+
+
+try:
+    # keep it secret... keep it safe
+    import apikey
+    API_KEY = apikey.LUXOR_API_KEY
+except ModuleNotFoundError as e:
+    API_KEY = None
+    print("You don't seem to have a LUXOR api key.  That's ok")
+
 
 from constants import *
 
 ########################################
 # https://github.com/LuxorLabs/hashrateindex-api-python-client
 def get_stats_from_luxor() -> bool:
+    if API_KEY == None:
+        return False
+
     output.toast("Gathering data from luxor...", duration=2)
 
     ENDPOINT = 'https://api.hashrateindex.com/graphql'
-    lux = API(host=ENDPOINT, method='POST', key=apikey.LUXOR_API_KEY)
+    lux = API(host=ENDPOINT, method='POST', key=API_KEY)
 
     try:
         data = lux.get_bitcoin_overview()['data']['bitcoinOverviews']['nodes']
@@ -44,7 +55,8 @@ def get_stats_from_luxor() -> bool:
         
         output.toast("loading complete!!!", color='success')
     except Exception as e:
-        logging.exception('')
+        #logging.debug("", exc_info=True)
+        logging.debug("", exc_info=True)
         output.toast("Could not download network status.", color='error', duration=4)
         return False
 
@@ -63,14 +75,17 @@ def get_luxor_price_as_df():
     """
         returns None on error
     """
+    if API_KEY == None:
+        return None
+
     ENDPOINT = 'https://api.hashrateindex.com/graphql'
-    lux = API(host=ENDPOINT, method='POST', key=apikey.LUXOR_API_KEY)
+    lux = API(host=ENDPOINT, method='POST', key=API_KEY)
 
     try:
         price = lux.get_ohlc_prices("ALL")['data']['getChartBySlug']['data']
         pdf = pd.DataFrame(price)
     except Exception as e:
-        logging.exception('')
+        logging.debug("", exc_info=True)
         return None
 
     return pdf
@@ -91,7 +106,7 @@ def get_stats_from_internet() -> bool:
         f = get_average_block_fee_from_internet()
         logging.debug(f"fee: {f}")
     except Exception as e:
-        logging.exception('')
+        logging.debug("", exc_info=True)
         output.toast("Could not download network status.", color='error', duration=4)
         return False
 
@@ -136,7 +151,7 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> in
             try:
                 pin.pin['feescroller'] = f"block: {bdx} --> fee: {block_fee:,}\n" + pin.pin["feescroller"]
             except Exception as e:
-                logging.exception('')
+                logging.debug("", exc_info=True)
                 # this error happens if the popup was closed
                 return round(total_fee / (1 + bdx - block_height + nBlocks), 2)
             logging.debug(f"block: {bdx} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")
@@ -175,16 +190,20 @@ def query_bitcoinprice_luxor() -> float:
     """
         returns -1 on error
     """
+
+    if API_KEY == None:
+        return -1
+
     try:
         ENDPOINT = 'https://api.hashrateindex.com/graphql'
-        lux = API(host=ENDPOINT, method='POST', key=apikey.LUXOR_API_KEY)
+        lux = API(host=ENDPOINT, method='POST', key=API_KEY)
         price = lux.get_ohlc_prices("_1_DAY")['data']['getChartBySlug']['data']
 
         # luxor's "_1_DAY" returns a bunch of data... the whole day's worth of price data every 15 minutes...
         # so let's just take the first and last price and average them, shall we?
         avg = (price[1]['open'] + price[-1]['open']) / 2
     except Exception as e:
-        logging.exception('')
+        logging.debug("", exc_info=True)
         return -1
 
     return avg
@@ -206,7 +225,7 @@ def query_bitcoinprice_coinbase() -> float:
         data = json.loads(response) # returns dict
         price = float( data['data']['amount'] )
     except Exception as e:
-        logging.exception('')
+        logging.debug("", exc_info=True)
         return -1
 
     return price
