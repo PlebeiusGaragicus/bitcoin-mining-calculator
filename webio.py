@@ -156,7 +156,7 @@ def show_settings():
             ],[
                 pin.put_input(name=PIN_BOUGHTATPRICE, type='float', label='bitcoin price at time of purchase', value=pin.pin[PIN_BTC_PRICE_NOW]),
                 pin.put_input(name=PIN_COST, type='float', label='Dollar cost of machine'),
-                pin.put_input(name=PIN_SAT_PER_TH, type='float', label="Sats per TH", readonly=True),
+                pin.put_input(name=PIN_SAT_PER_TH, type='text', label="Sats per TH", readonly=True),
                 pin.put_slider(name=PIN_COST_SLIDER, value=0,min_value=1, max_value=20_000, step=5, label="purchase amount slider")
             ]])
         pin.pin_on_change(name=PIN_BOUGHTATPRICE, onchange=boughtatprice_waschanged)
