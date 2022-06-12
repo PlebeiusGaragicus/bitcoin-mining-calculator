@@ -14,6 +14,9 @@ CLI_HELP = """
 -h or --help        - show this help
 
 --debug             - change logging level to debug
+
+--no-server         - opens the webpage immediately without needing to click on the link
+                    - use this when NOT using ssh
 """
 
 MAIN_TEXT = """# Open-Source Bitcoin Mining Profitability Calculator

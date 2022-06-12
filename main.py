@@ -94,6 +94,7 @@ if __name__ == '__main__':
     #logging.getLogger(__name__)
 
     logginglevel = logging.INFO
+    server = True
     # we use a slice to skip argv[0] which is the script
     for arg in sys.argv[1:]:
         found = False
@@ -103,8 +104,13 @@ if __name__ == '__main__':
         if arg == '--debug':
             found = True
             logginglevel = logging.DEBUG
+        if arg == '--no-server':
+            found = True
+            server = False
         if found == False:
-            print(f"unknown parameter {arg}")
+            print(f"unknown parameter {arg}\n")
+            print(CLI_HELP)
+            exit(1)
 
     logging.basicConfig(
         level=logginglevel,
@@ -112,6 +118,8 @@ if __name__ == '__main__':
         handlers=[logging.StreamHandler(),
                   logging.FileHandler('debug.log', mode='w')])
 
-    # I do it this way because if you're running it on your node over SSH the webpage won't automatically open, you have to click the link
-    start_server(main, port=8080, debug=True)
-    #main()
+    if server:
+        # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
+        start_server(main, port=8080, debug=True)
+    else:
+        main()

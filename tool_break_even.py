@@ -5,8 +5,11 @@
 This is a tool that calculates the break-even price given miner/network stats
 """
 
+from asyncore import read
 import threading
 import logging
+from numpy import block
+from pandas import value_counts
 
 from pywebio import pin
 from pywebio import output
@@ -20,41 +23,38 @@ from nodes import *
 from data import *
 from calcs import *
 
-def calculate_break_even():
-    wattage = pin.pin['wattage']
-    hashrate = pin.pin['hashrate']
-    rate = pin.pin['rate']
-    fee = pin.pin['fee']
-    height = pin.pin['height']
-    nh = pin.pin['nh']
-    price = pin.pin['price']
-    
-    # if pin.pin['fee'] < 1:
-    #     output.toast("Use whole number percents for pool fee - (Example: 2 instead of 0.02)", duration=7)
+def update_break_even( callback_throwaway ):
+    try:
+        wattage = int(pin.pin['wattage'])
+        hashrate = float(pin.pin['hashrate'])
+        poolfee = float(pin.pin['poolfee']) / 100
 
-    block_reward = 50 * ONE_HUNDRED_MILLION
-    block_reward >>= height // SUBSIDY_HALVING_INTERVAL
+        height = int(pin.pin['height'])
+        blocktxfee = float(pin.pin['blocktxfee'])
 
-    fee_average = 0.09 * ONE_HUNDRED_MILLION # TODO oh dear god fix this please my head hurts make it stop oh god no
-    reward = block_reward + fee_average
+        rate = float(pin.pin['rate'])
+        nh = float(pin.pin['nh'])
+        price = float(pin.pin['price'])
+    except Exception as e:
+        print("Exception:", e)
+        return
 
-    price_satoshi = price / ONE_HUNDRED_MILLION
-    share = hashrate / nh
-    rawreward = share * reward
-    s10 = rawreward * (1 - fee)
-    value = s10 * price_satoshi
+    reward = block_subsity(height) + blocktxfee
+    be_nh = (rate * wattage) / (6000 * reward * hashrate * (1 - poolfee) * price)
+    be_p = (rate * wattage * nh) / (6000 * reward * hashrate * (1 - poolfee))
+    be_rate = (reward * hashrate * (1 - poolfee) * price * 6000) / (nh * wattage)
 
-    kWh = wattage / 6000
-    cost = rate * kWh
+    pin.pin_update('be_rate', value=f"{be_rate:.3f}")
+    pin.pin_update('be_nh', value=f"{be_nh:,.2f}")
+    pin.pin_update('be_price', value=f"{be_p:,.2f}")
 
-    # TODO - find the break-even!
-
-    with output.use_scope('result', clear=True):
-        output.put_text(f"10 minute cost/earnings: cost ${cost:.2f} / earn ${value:.2f}")
+def height_waschanged(h):
+    pin.pin['subsidy'] = f"{block_subsity(h):,}"
+    update_break_even(None)
 
 ###############
 def cleanup():
-    logging.info("The web page was closed - goodbye")
+    print("web page closed - goodbye")
     exit(0)
 
 ###############################
@@ -79,24 +79,74 @@ def main():
         output.put_table(tdata=[[
             pin.put_input(name='wattage', type='number', label="Wattage"),
             pin.put_input(name='hashrate', type='float', label="Hashrate (terahash)"),
-            pin.put_input(name='rate', type='float', label="Cost / kWh"),
-            pin.put_input(name='fee', type='float', label="Pool fee %", value=0)
-        ],[
-            pin.put_input(name='height', type='float', label="block height", value=height),
-            pin.put_input(name='nh', type='float', label="Network hashrate (terahash)", value=nh),
-            pin.put_input(name='price', type='float', label="Bitcoin price", value=price),
-            pin.put_input(name='txfee', type='float', label="Average block fees", value=9_000_000) # TODO - THIS IS MADNESS!!
+            pin.put_input(name='poolfee', type='float', label="Pool fee %", value=0)
         ]])
-        output.put_button("find break-even price", onclick=calculate_break_even, color='info')
+        pin.pin_on_change('wattage', onchange=update_break_even)
+        pin.pin_on_change('hashrate', onchange=update_break_even)
+        pin.pin_on_change('fee', onchange=update_break_even)
+
+        output.put_table(tdata=[[
+            pin.put_input(name='height', type='float', label="block height", value=height),
+            pin.put_input(name='subsidy', type='text', label="current block subsidy", value=f"{block_subsity(height):,}", readonly=True),
+            pin.put_input(name='blocktxfee', type='float', label="Average block fees", value=9_000_000) # TODO - THIS IS MADNESS!!
+        ]])
+        pin.pin_on_change('height', onchange=height_waschanged)
+        pin.pin_on_change('subsidy', onchange=update_break_even)
+        pin.pin_on_change('blocktxfee', onchange=update_break_even)
+        
+        output.put_table(tdata=[[
+            pin.put_input(name='rate', type='float', label="Cost / kWh", value=0.12),
+            pin.put_input(name='nh', type='float', label="Network hashrate (terahash)", value=nh),
+            pin.put_input(name='price', type='float', label="Bitcoin price", value=price)
+        ]])
+        pin.pin_on_change('rate', onchange=update_break_even)
+        pin.pin_on_change('nh', onchange=update_break_even)
+        pin.pin_on_change('price', onchange=update_break_even)
+
+        output.put_markdown("---")
+        output.put_text("Break even:")
+        output.put_table(tdata=[[
+            pin.put_input(name='be_rate', type='text', label="Cost / kWh", readonly=True),
+            pin.put_input(name='be_nh', type='text', label="Network hashrate (terahash)", readonly=True),
+            pin.put_input(name='be_price', type='text', label="Bitcoin price", readonly=True)
+        ]])
 
 #############################
 if __name__ == '__main__':
-    # logging.basicConfig(
-    #     level=logging.DEBUG,
-    #     format="[%(levelname)s] (%(filename)s @ %(lineno)d) %(message)s",
-    #     handlers=[logging.StreamHandler(),
-    #               logging.FileHandler('debug.log', mode='w')])
-
     # I do it this way because if you're running it on your node over SSH the webpage won't automatically open, you have to click the link
     start_server(main, port=8080, debug=True)
     #main()
+
+
+
+
+
+
+
+# def calculate_break_even():
+#     wattage = pin.pin['wattage']
+#     hashrate = pin.pin['hashrate']
+#     rate = pin.pin['rate']
+#     fee = pin.pin['fee']
+#     height = pin.pin['height']
+#     nh = pin.pin['nh']
+#     price = pin.pin['price']
+
+#     subsidy = block_subsity(height)
+
+#     fee_average = 0.09 * ONE_HUNDRED_MILLION # TODO oh dear god fix this please my head hurts make it stop oh god no
+#     reward = subsidy + fee_average
+
+#     price_satoshi = price / ONE_HUNDRED_MILLION
+#     share = hashrate / nh
+#     rawreward = share * reward
+#     s10 = rawreward * (1 - fee)
+#     value = s10 * price_satoshi
+
+#     kWh = wattage / 6000
+#     cost = rate * kWh
+
+#     # TODO - find the break-even!
+
+#     with output.use_scope('result', clear=True):
+#         output.put_text(f"10 minute cost/earnings: cost ${cost:.2f} / earn ${value:.2f}")
