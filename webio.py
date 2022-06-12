@@ -17,11 +17,9 @@ from popups import *
 from data import *
 from calcs import *
 
-
 # the number of projections that we've run.
 # so we can increment the number when they are all displayed.
 analysisnumber = 0
-
 
 #######################
 def show_projection():

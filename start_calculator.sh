@@ -6,4 +6,5 @@
 # explains and catches common errors and helps the user through them
 # Umm... and other things
 
+. ./venv/bin/activate
 python3 main.py

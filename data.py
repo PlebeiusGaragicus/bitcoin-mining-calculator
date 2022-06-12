@@ -108,7 +108,6 @@ def get_stats_from_internet() -> bool:
         This gets the needed bitcoin network data from blockchain.info :)
         https://www.blockchain.com/api/q
     """
-    output.put_text("Gathering data from blockchain.info...", scope='init')
 
     try:
         h = int(ur.urlopen(ur.Request('https://blockchain.info/q/getblockcount')).read())

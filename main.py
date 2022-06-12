@@ -5,13 +5,14 @@
 This is the main module that you run
 """
 
+import sys
 import threading
 import logging
 
-import pywebio
 from pywebio import pin
 from pywebio import output
 from pywebio import session
+from pywebio import start_server
 
 from constants import *
 from nodes import *
@@ -64,6 +65,10 @@ def init():
                 while r == False:
                     r = popup_get_stats_from_user()
 
+def cleanup():
+    logging.info("The web page was closed - goodbye")
+    exit(0)
+
 ###############################
 def main():
     session.set_env(title="bitcoin mining profit calculator")
@@ -75,6 +80,7 @@ def main():
     t = threading.Thread(target=session.hold)
     session.register_thread( t )
     t.start()
+    session.defer_call(cleanup)
 
     with output.use_scope('main', clear=True):
         output.put_markdown( MAIN_TEXT )
@@ -86,12 +92,26 @@ def main():
 #############################
 if __name__ == '__main__':
     #logging.getLogger(__name__)
+
+    logginglevel = logging.INFO
+    # we use a slice to skip argv[0] which is the script
+    for arg in sys.argv[1:]:
+        found = False
+        if arg == '--help' or arg == '-h':
+            print(CLI_HELP)
+            exit(0)
+        if arg == '--debug':
+            found = True
+            logginglevel = logging.DEBUG
+        if found == False:
+            print(f"unknown parameter {arg}")
+
     logging.basicConfig(
-        level=logging.DEBUG,
+        level=logginglevel,
         format="[%(levelname)s] (%(filename)s @ %(lineno)d) %(message)s",
         handlers=[logging.StreamHandler(),
                   logging.FileHandler('debug.log', mode='w')])
 
     # I do it this way because if you're running it on your node over SSH the webpage won't automatically open, you have to click the link
-    pywebio.start_server(main, port=8080, debug=True)
+    start_server(main, port=8080, debug=True)
     #main()
