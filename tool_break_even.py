@@ -51,11 +51,8 @@ def update_break_even( callback_throwaway ):
 
     price_satoshi = price / ONE_HUNDRED_MILLION
 
-    # TODO I THINK MY MATH IS WRONG HERE...
     reward = block_subsity(height) + blocktxfee
-    #be_nh = (rate * wattage) / (6000 * reward * hashrate * (1 - poolfee) * price_satoshi) * ONE_HUNDRED_MILLION
     be_nh = (reward * hashrate * (1 - poolfee) * price_satoshi * 6000) / (rate * wattage)
-    #be_p = ONE_HUNDRED_MILLION * (rate * wattage * nh) / (6000 * reward * hashrate * (1 - poolfee))
     be_p = ONE_HUNDRED_MILLION * ((nh * rate * wattage) / (reward * hashrate * (1 - poolfee) * 6000))
     be_rate = (reward * hashrate * (1 - poolfee) * price_satoshi * 6000) / (nh * wattage)
 
