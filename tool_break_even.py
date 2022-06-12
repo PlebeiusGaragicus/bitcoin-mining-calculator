@@ -5,11 +5,13 @@
 This is a tool that calculates the break-even price given miner/network stats
 """
 
-from asyncore import read
+# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
+# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
+# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
+# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
+
+from multiprocessing import pool
 import threading
-import logging
-from numpy import block
-from pandas import value_counts
 
 from pywebio import pin
 from pywebio import output
@@ -24,6 +26,10 @@ from data import *
 from calcs import *
 
 def update_break_even( callback_throwaway ):
+    """
+        This call back is used for every onchange= 'pin' input field.
+        We just continuously update the numbers on every keyboard stroke
+    """
     try:
         wattage = int(pin.pin['wattage'])
         hashrate = float(pin.pin['hashrate'])
@@ -38,11 +44,20 @@ def update_break_even( callback_throwaway ):
     except Exception as e:
         print("Exception:", e)
         return
+    
+    if rate == 0:
+        print("cost / kWh is 0 ...")
+        return
 
+    price_satoshi = price / ONE_HUNDRED_MILLION
+
+    # TODO I THINK MY MATH IS WRONG HERE...
     reward = block_subsity(height) + blocktxfee
-    be_nh = (rate * wattage) / (6000 * reward * hashrate * (1 - poolfee) * price)
-    be_p = (rate * wattage * nh) / (6000 * reward * hashrate * (1 - poolfee))
-    be_rate = (reward * hashrate * (1 - poolfee) * price * 6000) / (nh * wattage)
+    #be_nh = (rate * wattage) / (6000 * reward * hashrate * (1 - poolfee) * price_satoshi) * ONE_HUNDRED_MILLION
+    be_nh = (reward * hashrate * (1 - poolfee) * price_satoshi * 6000) / (rate * wattage)
+    #be_p = ONE_HUNDRED_MILLION * (rate * wattage * nh) / (6000 * reward * hashrate * (1 - poolfee))
+    be_p = ONE_HUNDRED_MILLION * ((nh * rate * wattage) / (reward * hashrate * (1 - poolfee) * 6000))
+    be_rate = (reward * hashrate * (1 - poolfee) * price_satoshi * 6000) / (nh * wattage)
 
     pin.pin_update('be_rate', value=f"{be_rate:.3f}")
     pin.pin_update('be_nh', value=f"{be_nh:,.2f}")
