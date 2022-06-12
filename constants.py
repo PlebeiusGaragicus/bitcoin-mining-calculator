@@ -7,6 +7,15 @@ This module contains the constants used in this project
 
 
 ######################################################################
+
+CLI_HELP = """
+./start_calculator.sh
+
+-h or --help        - show this help
+
+--debug             - change logging level to debug
+"""
+
 MAIN_TEXT = """# Open-Source Bitcoin Mining Profitability Calculator
 
 __The goal of this project is to inspire__ people to learn more about bitcoin's built-in incentive structure - mining.
