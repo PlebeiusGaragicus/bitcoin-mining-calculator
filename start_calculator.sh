@@ -7,4 +7,4 @@
 # Umm... and other things
 
 . ./venv/bin/activate
-python3 main.py --no-server
+python3 main.py

@@ -42,6 +42,7 @@ EXPECTED_BLOCKS_PER_DAY = 144           # 24 * 6
 
 # https://github.com/bitcoin/bitcoin/blob/0.21/src/chainparams.cpp#L69
 SUBSIDY_HALVING_INTERVAL = 210_000
+EPOCH_INTERVAL = 2016
 
 ### DEFAULT NUMBERS FOR THE USER INPUT FIELDS
 DEFAULT_POOL_FEE = 0 # per-cent (2 == 2%; 0.1 == 0.1%)
