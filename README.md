@@ -41,6 +41,33 @@ chmod +x start_calculator.sh
 
 # TODO
 
+```
+¯\_(ツ)_/¯
+```
+
+### Better logging
+- https://stackoverflow.com/questions/45063099/python-logger-per-function-or-per-module
+- https://docs.python.org/3/howto/logging.html#logging-basic-tutorial
+- https://python-guide.readthedocs.io/en/latest/writing/logging/
+- https://12factor.net/logs
+- https://fangpenlin.com/posts/2012/08/26/good-logging-practice-in-python/
+- https://realpython.com/python-logging-source-code/#how-to-follow-along
+
+### Moving averages
+- https://towardsdatascience.com/moving-averages-in-python-16170e20f6c
+- https://www.geeksforgeeks.org/how-to-calculate-moving-averages-in-python/
+
+### use difficulty instead of hashrate
+- DONE: write get_difficulty(bits)
+- find out how to calculate hashrate from difficulty (H = D * 2^32 / 600) ??
+
+### deploy this app?
+- https://pywebio.readthedocs.io/en/latest/platform.html
+- https://analyticsindiamag.com/creating-web-applications-using-pywebio/
+- https://github.com/wang0618/pywebio-in-cloud
+
+
+### everything else
 - https://www.blockwaresolutions.com/research-and-publications/2020-halving-analysis
 - uhhh.. make sure it works.  The projection/graph is not accurate
 - make the graph pretty-er
@@ -54,14 +81,13 @@ chmod +x start_calculator.sh
 - Integrate spruned repo (one click install, catch and diagnose all errors - be easy to use)
 - +/- 5% TH on the miner?
 
-Better logging
-- https://stackoverflow.com/questions/45063099/python-logger-per-function-or-per-module
-- https://docs.python.org/3/howto/logging.html#logging-basic-tutorial
-- https://python-guide.readthedocs.io/en/latest/writing/logging/
-- https://12factor.net/logs
-- https://fangpenlin.com/posts/2012/08/26/good-logging-practice-in-python/
-- https://realpython.com/python-logging-source-code/#how-to-follow-along
-
-Moving averages
-- https://towardsdatascience.com/moving-averages-in-python-16170e20f6c
-- https://www.geeksforgeeks.org/how-to-calculate-moving-averages-in-python/
+## homework
+- https://bitcoin.sipa.be/index.html
+- https://alloscomp.com/bitcoin/calculator
+- https://alloscomp.com/bitcoin/calculator/json
+- https://bitcointalk.org/index.php?topic=1682.0
+- https://en.bitcoin.it/wiki/Difficulty#What_network_hash_rate_results_in_a_given_difficulty.3F
+- https://www.blockwaresolutions.com/research-and-publications/second-largest-difficulty-reduction-in-bitcoin-history-1595-why-bitcoin-investors-need-to-understand-miner-sell-pressure
+- https://www.blockwaresolutions.com/research-and-publications/2020-halving-analysis
+- https://bitcoinmagazine.com/technical/denver-derivative-bitcoin-asic-price
+- https://www.lummis.senate.gov/press-releases/lummis-gillibrand-introduce-landmark-legislation-to-create-regulatory-framework-for-digital-assets/
