@@ -15,6 +15,7 @@ import pandas as pd
 
 from constants import *
 from data import *
+from nodes import *
 
 
 #########################################################################
@@ -182,7 +183,19 @@ def showstepbystep():
 
 ###################
 def feeanalysis():
-    output.toast("not implemented yet... sorry")
+    # TODO can we record the fact that we have a node.. or not.. instead of doing this all over again?  k thanks
+
+    path = useful_node()
+
+    if path != None:
+        f = node_avgblockfee(path)
+    else:
+        f = get_average_block_fee_from_internet()
+
+    pin.pin[PIN_AVERAGEFEE] = f
+    pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
+
+
 
 #######################
 def hashratehistory():

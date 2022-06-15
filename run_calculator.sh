@@ -2,4 +2,4 @@
 . ./venv/bin/activate
 
 # run the calculator script
-python3 main.py
+python3 main.py $1

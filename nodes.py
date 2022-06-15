@@ -86,8 +86,21 @@ def node_networkhashps(bcli_path, nblocks=120, height=-1) -> float:
     """
     nh = os.popen(f"{bcli_path} getnetworkhashps {nblocks} {height}").read()
 
-    #TODO sanitize nh????????
+    #TODO sanitize????????
     return float( nh.split('\n')[0] ) / TERAHASH
+
+####################################################################
+def node_getdifficulty(bcli_path):
+    """
+        basically just runs the 'getdifficulty' command
+        https://developer.bitcoin.org/reference/rpc/getdifficulty.html
+    """
+    diff = os.popen(f"{bcli_path} getdifficulty").read()
+
+    #TODO sanitize?
+    return float( diff.split('\n')[0] )
+
+
 
 ###########################################################################
 def node_avgblockfee(bcli_path, nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
