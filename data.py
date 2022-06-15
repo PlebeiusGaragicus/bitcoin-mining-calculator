@@ -111,12 +111,11 @@ def get_stats_from_internet() -> bool:
 
     try:
         h = int(ur.urlopen(ur.Request('https://blockchain.info/q/getblockcount')).read())
-        #d = int(float(ur.urlopen(ur.Request('https://blockchain.info/q/getdifficulty')).read()))
+        diff = int(float(ur.urlopen(ur.Request('https://blockchain.info/q/getdifficulty')).read()))
         nh = int(ur.urlopen(ur.Request('https://blockchain.info/q/hashrate')).read()) / 1000
         p = get_price() #query_bitcoinprice() #int(float(ur.urlopen(ur.Request('https://blockchain.info/q/24hrprice')).read()))
 
-        f = get_average_block_fee_from_internet()
-        logging.debug(f"fee: {f}")
+        #f = get_average_block_fee_from_internet()
     except Exception as e:
         logging.debug("", exc_info=True)
         output.toast("Could not download network status.", color='error', duration=4)
@@ -125,9 +124,10 @@ def get_stats_from_internet() -> bool:
     pin.pin[PIN_BTC_PRICE_NOW] = p
     pin.pin[PIN_BOUGHTATPRICE] = p
     pin.pin[PIN_HEIGHT] = h
-    pin.pin[PIN_AVERAGEFEE] = f
-    pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
+    #pin.pin[PIN_AVERAGEFEE] = f
+    #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
     pin.pin[PIN_NETWORKHASHRATE] = nh
+    pin.pin[PIN_NETWORKDIFFICULTY] = diff
 
     return True
 

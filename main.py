@@ -33,17 +33,15 @@ def init():
         h = node_blockheight(path)
 
         f = node_avgblockfee(path)
-        #f = node_avgblockfee_popup(path, nBlocks)
         nh = node_networkhashps(path)
+        diff = node_getdifficulty(path)
 
-        p = get_price() # query_bitcoinprice()
+        p = get_price()
 
         if p == -1:
-            #output.toast("Unable to download current bitcoin price from <some website>")
             logging.error("Unable to get current bitcoin price")
             p = popup_get_price_from_user()
 
-            # TODO check p is no -1; loop endlessly?
             logging.info(f"Using user-supplied Bitcoin price: ${p:,.2f}")
         else:
             logging.info(f"Bitcoin price: ${p:,.2f}")
@@ -51,19 +49,15 @@ def init():
         pin.pin[PIN_BTC_PRICE_NOW] = p
         pin.pin[PIN_BOUGHTATPRICE] = p
         pin.pin[PIN_HEIGHT] = h
-        pin.pin[PIN_AVERAGEFEE] = f
         pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
         pin.pin[PIN_NETWORKHASHRATE] = nh
+        pin.pin[PIN_NETWORKDIFFICULTY] = diff
 
     else:
         # if we're not able to get stats from the internet:
         if not get_stats_from_luxor():
             if not get_stats_from_internet():
-
-                # run an endless loop until user provides valid network data
                 r = popup_get_stats_from_user()
-                while r == False:
-                    r = popup_get_stats_from_user()
 
 def cleanup():
     logging.info("The web page was closed - goodbye")
@@ -104,12 +98,8 @@ if __name__ == '__main__':
         if arg == '--debug':
             found = True
             logginglevel = logging.DEBUG
-        # THIS CODE IS IN TIME OUT!  NAUGHT, NASTY LITTLE LINES OF CODE!  GOLLUM.. GOLLUM!
-        # if arg == '--no-server':
-        #     found = True
-        #     server = False
         if found == False:
-            print(f"unknown parameter {arg}\n")
+            print(f"unknown parameter: "{arg}"\n")
             print(CLI_HELP)
             exit(1)
 
@@ -119,13 +109,6 @@ if __name__ == '__main__':
         handlers=[logging.StreamHandler(),
                   logging.FileHandler('debug.log', mode='w')])
 
-    # ON SECOND THOUGHT I DON'T LIKE THIS BECAUSE IT DOESN'T EXIT THE SCRIPT CLEANLY WHEN YOU CLOSE THE WEBPAGE
-    # BAD SOURCE CODE!!! BAD!!! GO SIT IN THE CORNER!
-    # if server:
-        # # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
-        # start_server(main, port=8080, debug=True)
-    # else:
-    #     main()
-
     # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
+    # Also, this script won't exit when you close the webpage otherwise - probably something to do with the thread running session.hold()
     start_server(main, port=8080, debug=True)

@@ -29,12 +29,12 @@ pip install -r requirements.txt
 chmod +x start_calculator.sh
 ```
 
-# How to run
+## How to run
 ```sh
 ./start_calculator.sh
 ```
 
-## How to Contribute
+# How to Contribute
 
 Send me a pull request!
 

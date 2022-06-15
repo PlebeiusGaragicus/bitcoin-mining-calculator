@@ -190,6 +190,7 @@ def show_settings():
             pin.put_input(name=PIN_BTC_PRICE_NOW, type='float', label="Bitcoin price $", value=0),
             pin.put_input(name=PIN_HEIGHT, type='float', label="blockchain height", value=0),
             pin.put_input(name=PIN_NETWORKHASHRATE, type='float', label="network hashrate", value=0),
+            pin.put_input(name=PIN_NETWORKDIFFICULTY, type='float', label="network difficulty", value=0),
             ],[
             pin.put_input(name=PIN_AVERAGEFEE, type='float', label="average transaction fees per block", value=0),
             output.put_button("block fee analysis", onclick=feeanalysis)
