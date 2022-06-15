@@ -2,15 +2,9 @@
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
 
 """
-This is a tool that calculates the break-even price given miner/network stats
+This is a tool that calculates the break-even of price, cost/kWh and network hashrate
 """
 
-# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
-# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
-# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
-# this is very much a work in progress.... weeeeeeeeeeeeeeeeeeeeeeeeeeeeee!!!!!!!!!!!
-
-from multiprocessing import pool
 import threading
 
 from pywebio import pin

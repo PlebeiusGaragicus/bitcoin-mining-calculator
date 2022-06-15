@@ -76,7 +76,7 @@ def main():
     # https://pywebio.readthedocs.io/en/latest/platform.html
     # https://pywebio.readthedocs.io/en/v1.2.2/guide.html#server-mode-and-script-mode
     # https://github.com/pywebio/PyWebIO/blob/dev/demos/bokeh_app.py
-    # I can't believe this fucking works!!!!  Will it ever cause problems? #shrug
+    # I can't believe this fucking works!!!!  Will it ever cause problems? ¯\_(ツ)_/¯ weeeeeeeeeeeee
     t = threading.Thread(target=session.hold)
     session.register_thread( t )
     t.start()
@@ -104,9 +104,10 @@ if __name__ == '__main__':
         if arg == '--debug':
             found = True
             logginglevel = logging.DEBUG
-        if arg == '--no-server':
-            found = True
-            server = False
+        # THIS CODE IS IN TIME OUT!  NAUGHT, NASTY LITTLE LINES OF CODE!  GOLLUM.. GOLLUM!
+        # if arg == '--no-server':
+        #     found = True
+        #     server = False
         if found == False:
             print(f"unknown parameter {arg}\n")
             print(CLI_HELP)
@@ -118,8 +119,13 @@ if __name__ == '__main__':
         handlers=[logging.StreamHandler(),
                   logging.FileHandler('debug.log', mode='w')])
 
-    if server:
-        # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
-        start_server(main, port=8080, debug=True)
-    else:
-        main()
+    # ON SECOND THOUGHT I DON'T LIKE THIS BECAUSE IT DOESN'T EXIT THE SCRIPT CLEANLY WHEN YOU CLOSE THE WEBPAGE
+    # BAD SOURCE CODE!!! BAD!!! GO SIT IN THE CORNER!
+    # if server:
+        # # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
+        # start_server(main, port=8080, debug=True)
+    # else:
+    #     main()
+
+    # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
+    start_server(main, port=8080, debug=True)
