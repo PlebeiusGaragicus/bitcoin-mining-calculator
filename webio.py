@@ -173,10 +173,10 @@ def show_settings():
                 pin.put_input(name=PIN_MONTHSTOPROJECT, type='number', value=DEFAULT_MONTHSTOPROJECT, label='Months until you re-sell this miner', help_text="Months to run projection"),
                 pin.put_checkbox(name=PIN_NEVERSELL, options=[OPTION_NEVERSELL], value=False)
             ],[
-                pin.put_input(name=PIN_RESELL_UPPER, type='number', value=75, label="Resale % UPPER limit", help_text="% percent of purchase price"),
+                pin.put_input(name=PIN_RESELL_UPPER, type='number', label="Resale % UPPER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_HIGH),
                 pin.put_input(name=PIN_UPPER_READONLY, type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
             ],[
-                pin.put_input(name=PIN_RESELL_LOWER, type='number', value=50, label="Resale % LOWER limit", help_text="% percent of purchase price"),
+                pin.put_input(name=PIN_RESELL_LOWER, type='number', label="Resale % LOWER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_LOW),
                 pin.put_input(PIN_LOWER_READONLY, type='number', label="Resale value LOWER LIMIT", readonly=True, help_text="($) resale amount")
         ]])
         pin.pin_on_change(name=PIN_NEVERSELL, onchange=neversell_waschanged)
@@ -187,15 +187,11 @@ def show_settings():
         output.put_markdown("## Bitcoin network state")
 
         output.put_table([[
-            #pin.put_input(name=PIN_BTC_PRICE_NOW, type='float', value=pin.pin[PIN_BTC_PRICE_NOW], label="Bitcoin price $"),
-            pin.put_input(name=PIN_BTC_PRICE_NOW, type='float', label="Bitcoin price $"),
-            #pin.put_input(name=PIN_HEIGHT, type='float', value=pin.pin[PIN_HEIGHT], label="blockchain height"),
-            pin.put_input(name=PIN_HEIGHT, type='float', label="blockchain height"),
-            #pin.put_input(name=PIN_NETWORKHASHRATE, type='float', value=pin.pin[PIN_NETWORKHASHRATE], label="network hashrate"),
-            pin.put_input(name=PIN_NETWORKHASHRATE, type='float', label="network hashrate"),
+            pin.put_input(name=PIN_BTC_PRICE_NOW, type='float', label="Bitcoin price $", value=0),
+            pin.put_input(name=PIN_HEIGHT, type='float', label="blockchain height", value=0),
+            pin.put_input(name=PIN_NETWORKHASHRATE, type='float', label="network hashrate", value=0),
             ],[
-            #pin.put_input(name=PIN_AVERAGEFEE, type='float', value=pin.pin[PIN_AVERAGEFEE], label="average transaction fees per block", help_text=f"= {pin.pin[PIN_AVERAGEFEE] / ONE_HUNDRED_MILLION:.3f} bitcoin"),
-            pin.put_input(name=PIN_AVERAGEFEE, type='float', label="average transaction fees per block"),
+            pin.put_input(name=PIN_AVERAGEFEE, type='float', label="average transaction fees per block", value=0),
             output.put_button("block fee analysis", onclick=feeanalysis)
             ]
         ])
@@ -204,9 +200,9 @@ def show_settings():
         output.put_markdown("---")
         output.put_markdown("## Cost-of-production variables")
         output.put_table([[
-            pin.put_input(PIN_KWH_RATE, type='float', value= DEFAUL_KPKWH, label='your cost per kilowatt-hour: $'),
-            pin.put_input(PIN_POOLFEE, type='float', value= DEFAULT_POOL_FEE, label='mining pool fee: %'),
-            pin.put_input(PIN_OPEX, type='float', value= DEFAULT_OPEX, label='monthly operational cost: $'),
+            pin.put_input(PIN_KWH_RATE, type='float', label='your cost per kilowatt-hour: $', value=DEFAUL_KPKWH),
+            pin.put_input(PIN_POOLFEE, type='float', label='mining pool fee: %', value= DEFAULT_POOL_FEE),
+            pin.put_input(PIN_OPEX, type='float', label='monthly operational cost: $', value= DEFAULT_OPEX),
         ]])
 
         output.put_markdown("---")
