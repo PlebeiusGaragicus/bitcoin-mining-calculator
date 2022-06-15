@@ -7,6 +7,7 @@ This tool helps you decide when to invest in bitcoin mining equipment
     -statistician George Box
 ```
 
+
 This tool is for prospective bitcoin miners to understand the economics involved in bitcoin mining and to help aid in purchase decisions of bitcoin mining hardware - you can use it to calculate the potential earnings/costs of running any bitcoin mining equipment.  This project aims to be an open-source example of - and alternative to - bitcoin mining profitability calculators found online today (in 2022).  I hope to explain big concepts as I go and provide comments/documentation where possible to enable everyone's understanding of this technology.
 
 This repository should revolve around teaching the ideas behind bitcoin mining and to encourage the smart, expansion of bitcoin mining - even at home.
@@ -40,3 +41,16 @@ Send me a pull request!
 
 I'm new to github and collaborating, but I'll figure it out!
 
+
+```
+¯\_(ツ)_/¯
+```
+
+
+# I stand on the shoulders of giants...
+
+See also:
+- https://github.com/bitcoinbook/bitcoinbook
+- https://insights.braiins.com/en/profitability-calculator/
+- https://www.aniccaresearch.tech/blog/the-intelligent-bitcoin-miner-part-i
+- https://data.hashrateindex.com/network-data/btc
