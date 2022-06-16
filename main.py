@@ -25,40 +25,32 @@ def init():
     """
         This tries to get the latest bitcoin network data + price
     """
-    # make init a popup??? but you can't have a popup call a popup..... maybe the popup will appear when data is being downloaded!!!
 
-    path = useful_node()
+    p = get_price()
 
-    if path != None:
-        h = node_blockheight(path)
+    if p == -1:
+        logging.error("Unable to get current bitcoin price")
+        p = popup_get_price_from_user()
 
-        f = node_avgblockfee(path)
-        nh = node_networkhashps(path)
-        diff = node_getdifficulty(path)
-
-        p = get_price()
-
-        if p == -1:
-            logging.error("Unable to get current bitcoin price")
-            p = popup_get_price_from_user()
-
-            logging.info(f"Using user-supplied Bitcoin price: ${p:,.2f}")
-        else:
-            logging.info(f"Bitcoin price: ${p:,.2f}")
-
-        pin.pin[PIN_BTC_PRICE_NOW] = p
-        pin.pin[PIN_BOUGHTATPRICE] = p
-        pin.pin[PIN_HEIGHT] = h
-        pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-        pin.pin[PIN_NETWORKHASHRATE] = nh
-        pin.pin[PIN_NETWORKDIFFICULTY] = diff
-
+        logging.info(f"Using user-supplied Bitcoin price: ${p:,.2f}")
     else:
-        # if we're not able to get stats from the internet:
+        logging.info(f"Bitcoin price: ${p:,.2f}")
+
+    pin.pin[PIN_BTC_PRICE_NOW] = p
+    pin.pin[PIN_BOUGHTATPRICE] = p
+
+    load_success = False
+    path = useful_node()
+    if path != None:
+        load_success = get_stats_from_node(path)
+
+    if not load_success:
         if not get_stats_from_luxor():
             if not get_stats_from_internet():
-                r = popup_get_stats_from_user()
+                if not popup_get_stats_from_user():
+                    output.toast("Unable to get bitcoin network status")
 
+#################
 def cleanup():
     logging.info("The web page was closed - goodbye")
     exit(0)
@@ -67,10 +59,6 @@ def cleanup():
 def main():
     session.set_env(title="bitcoin mining profit calculator")
 
-    # https://pywebio.readthedocs.io/en/latest/platform.html
-    # https://pywebio.readthedocs.io/en/v1.2.2/guide.html#server-mode-and-script-mode
-    # https://github.com/pywebio/PyWebIO/blob/dev/demos/bokeh_app.py
-    # I can't believe this fucking works!!!!  Will it ever cause problems? ¯\_(ツ)_/¯ weeeeeeeeeeeee
     t = threading.Thread(target=session.hold)
     session.register_thread( t )
     t.start()
@@ -78,10 +66,16 @@ def main():
 
     with output.use_scope('main', clear=True):
         output.put_markdown( MAIN_TEXT )
-        output.put_button("USD - BTC converter", onclick=popup_currencyconverter, color='info')
+        output.put_button("fiat <-> bitcoin converter", onclick=popup_currencyconverter, color='info')
 
     show_settings()
     init()
+
+    # TODO DEBUG ONLY
+    pin.pin[PIN_WATTAGE] = 3050
+    pin.pin[PIN_HASHRATE] = 90
+    pin.pin[PIN_COST] = 5375
+    pin.pin[PIN_BOUGHTATPRICE] = 29500
 
 #############################
 if __name__ == '__main__':
@@ -99,7 +93,7 @@ if __name__ == '__main__':
             found = True
             logginglevel = logging.DEBUG
         if found == False:
-            print(f"unknown parameter: "{arg}"\n")
+            print(f"unknown parameter: {arg}\n")
             print(CLI_HELP)
             exit(1)
 

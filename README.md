@@ -14,7 +14,7 @@ This repository should revolve around teaching the ideas behind bitcoin mining a
 
 The included code aims to be as easy to use as possible; with or without running your own Bitcoin archive node.
 
-I am a pleb whose goal it is to inspire the next generation of coders to develop open-source tools for the world and, above all, to remind you that you don't have to be an expert in order to participate in this global bitcoin network.
+I am a pleb ```¯\_(ツ)_/¯``` whose goal it is to inspire the next generation of coders to develop open-source tools for the world and, above all, to remind you that you don't have to be an expert in order to participate in this global bitcoin network.
 
 # How to install and use
 ```sh
@@ -41,10 +41,6 @@ Send me a pull request!
 
 I'm new to github and collaborating, but I'll figure it out!
 
-
-```
-¯\_(ツ)_/¯
-```
 
 
 # I stand on the shoulders of giants...

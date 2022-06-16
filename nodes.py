@@ -16,6 +16,7 @@ from pywebio import output
 from pywebio import pin
 
 from constants import *
+from calcs import *
 
 ###################
 def useful_node():
@@ -54,6 +55,27 @@ def useful_node():
     logging.info(f"This node appears up-to-date - we can use it!")
 
     return bin_path
+
+#######################################
+def get_stats_from_node(path) -> bool:
+    try:
+        h = node_blockheight(path)
+        diff = node_getdifficulty(path)
+        nh = round(get_hashrate_from_difficulty(diff), 2)
+        #nh = round((d * 2 ** 32) / 600 / TERAHASH, 2)
+        #nh = node_networkhashps(path)
+        #f = node_avgblockfee(path)
+
+        pin.pin[PIN_HEIGHT] = h
+        pin.pin[PIN_NETWORKDIFFICULTY] = diff
+        pin.pin[PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
+        pin.pin_update(PIN_NETWORKHASHRATE, help_text=f"{nh/MEGAHASH:.2f} EH/s")
+        #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
+    except Exception as e:
+        logging.exception(f'__func__')
+        return False
+
+    return True
 
 ########################################
 def node_blockheight(bcli_path) -> int:
