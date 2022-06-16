@@ -17,6 +17,8 @@ import pandas as pd
 
 from luxor_api import API
 
+from calcs import get_hashrate_from_difficulty
+
 
 try:
     # keep it secret... keep it safe
@@ -59,12 +61,17 @@ def get_stats_from_luxor() -> bool:
 # 'nextHalvingDate': '2024-05-03T00:00:00+00:00',
 # 'txRateAvg7D': '2.8970980756008053'}]
 
-        nh = lux.get_network_hashrate("_7_DAY")['data']['getNetworkHashrate']['nodes']
+        diff = 0
+
+        #nh = lux.get_network_hashrate("_7_DAY")['data']['getNetworkHashrate']['nodes']
+        nh = round(get_hashrate_from_difficulty(diff), 2)
 
         price = lux.get_ohlc_prices("_1_DAY")['data']['getChartBySlug']['data']
 
-        return False # TODO DEBUG ONLY
-        
+        # TODO DEBUG ONLY
+        output.toast("failed to fetch luxor data")
+        return False
+
         output.toast("loading complete!!!", color='success')
     except Exception as e:
         #logging.debug("", exc_info=True)
@@ -112,8 +119,11 @@ def get_stats_from_internet() -> bool:
     try:
         h = int(ur.urlopen(ur.Request('https://blockchain.info/q/getblockcount')).read())
         diff = int(float(ur.urlopen(ur.Request('https://blockchain.info/q/getdifficulty')).read()))
-        nh = int(ur.urlopen(ur.Request('https://blockchain.info/q/hashrate')).read()) / 1000
-        p = get_price() #query_bitcoinprice() #int(float(ur.urlopen(ur.Request('https://blockchain.info/q/24hrprice')).read()))
+        #nh = int(ur.urlopen(ur.Request('https://blockchain.info/q/hashrate')).read()) / 1000
+        #p = get_price() #query_bitcoinprice() #int(float(ur.urlopen(ur.Request('https://blockchain.info/q/24hrprice')).read()))
+
+        #nh = round((diff * 2 ** 32) / 600 / TERAHASH, 2)
+        nh = round(get_hashrate_from_difficulty(diff), 2)
 
         #f = get_average_block_fee_from_internet()
     except Exception as e:
@@ -121,13 +131,14 @@ def get_stats_from_internet() -> bool:
         output.toast("Could not download network status.", color='error', duration=4)
         return False
 
-    pin.pin[PIN_BTC_PRICE_NOW] = p
-    pin.pin[PIN_BOUGHTATPRICE] = p
+    # pin.pin[PIN_BTC_PRICE_NOW] = p
+    # pin.pin[PIN_BOUGHTATPRICE] = p
     pin.pin[PIN_HEIGHT] = h
     #pin.pin[PIN_AVERAGEFEE] = f
     #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-    pin.pin[PIN_NETWORKHASHRATE] = nh
     pin.pin[PIN_NETWORKDIFFICULTY] = diff
+    pin.pin[PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
+    pin.pin_update(PIN_NETWORKHASHRATE, help_text=f"{nh/MEGAHASH:.2f} EH/s")
 
     return True
 
@@ -184,10 +195,7 @@ def get_price() -> float:
     if p == -1:
         p = query_bitcoinprice_coinbase()
     
-    if p == -1:
-        return -1
-    else:
-        return p
+    return p
 
 ########################################
 def query_bitcoinprice_luxor() -> float:

@@ -38,6 +38,42 @@ def btc(fiat, price):
     """
     return int(ONE_HUNDRED_MILLION * (fiat / price))
 
+def get_difficulty(bits: int):
+    """
+        This converts the 'bits' field in a bitcoin block to the 'difficulty' number
+
+        Taken (AKA, shamelessly plagiarized) from bitcoin core:
+            https://github.com/bitcoin/bitcoin/blob/8f3ab9a1b12a967cd9827675e9fce112e51d42d8/src/rpc/blockchain.cpp#L75-L95
+        Also helpful:
+            https://en.bitcoin.it/wiki/Difficulty
+            https://stackoverflow.com/a/22161019
+            https://bitcoin.stackexchange.com/questions/30467/what-are-the-equations-to-convert-between-bits-and-difficulty
+            https://bitcointalk.org/index.php?topic=192886.0
+
+        ...or just use this shell script     ¯\_(ツ)_/¯
+        #!/bin/bash
+        echo "ibase=16;FFFF0000000000000000000000000000000000000000000000000000 / $1" | bc -l
+    """
+
+    shift = (bits >> 24) & 0xFF
+    diff = 0x0000FFFF / (bits & 0x00FFFFFF)
+
+    while shift < 29:
+        diff *= 256.0
+        shift += 1
+    
+    while shift > 29:
+        diff /= 256.0
+        shift -= 1
+
+    return diff
+
+def get_hashrate_from_difficulty( difficulty: float) -> float:
+    """
+        Returns estimated network terahashes for a given network difficulty
+        # TODO wording
+    """
+    return (difficulty * 2 ** 32) / 600 / TERAHASH
 
 
 ##########################
@@ -51,13 +87,14 @@ def calculate_projection(
                         pricegrow,
                         pricegrow2, 
                         pricelag,
-                        networh_hashrate,
+                        #networh_hashrate,
+                        network_difficulty,
                         hashgrow,
                         kWh_rate,
                         opex,
-                        capex,
+                        capex_in_sats,
                         resale_upper,
-                        resale_lower,
+                        #resale_lower,
                         poolfee
                     ):
     """
@@ -76,13 +113,13 @@ def calculate_projection(
         KEY_PRICE_GROWTH : pricegrow,
         KEY_PRICE_GROWTH2 : pricegrow2,
         KEY_PRICE_LAG : pricelag,
-        KEY_START_NH : networh_hashrate,
+        #KEY_START_NH : networh_hashrate,
         KEY_HASH_GROWTH : hashgrow,
         #KEY_HASH_GROWTH2 : hashgrow2,
         KEY_MONTHLY_OPEX : opex,
-        KEY_CAPEX : capex, # sats
+        KEY_CAPEX_SATS : capex_in_sats, # sats
         KEY_RESALE_UPPER : resale_upper,
-        KEY_RESALE_LOWER : resale_lower,
+        #KEY_RESALE_LOWER : resale_lower,
         KEY_POOLFEE : poolfee, # whole number percent / need to divide by 100
         KEY_RATE_KWH : kWh_rate,
         # THE REST OF THESE BELOW ARE CALCULATED OFF OF THE ABOVE GIVEN VARIABLES
@@ -105,46 +142,51 @@ def calculate_projection(
         KEY_BREAKEVEN_NH : [], # at estimated price
     }
 
-    dollar_capex = fiat(capex, price=price)
+    networh_hashrate = get_hashrate_from_difficulty(network_difficulty)
+
+    capexsats_per_months = capex_in_sats / months
+    logging.debug(f"capex: {capex_in_sats} sats -> {capexsats_per_months} sats/month")
+
+    capex_in_sats *= 1 - (resale_upper / 100)
+    logging.debug(f"resell: {resale_upper}% -> {capex_in_sats} sats/month")
+
+    capexsats_per_months = capex_in_sats / months
+    logging.debug(f"capex: {capex_in_sats} sats -> {capexsats_per_months} sats/month")
 
     # have we crossed a halvening?  We use this to determine which growth factor to use with price/nh
+    # TODO - what if we project out really far and cross TWO halvenings?
     crossed = False
     # this used in conjunction with pricelag
     month_we_crossed = 0
 
     for m in range(months):
-        hashvalue = 0
-        poolfee = 0
+        sats_earned = 0
+        #poolfee = 0
         _kwh = 0
 
         # DO ONE DAY OF CALCULATIONS
-        for _ in range(30):
+        for _day in range(30):
 
             if blocks_until_halvening( height ) < EXPECTED_BLOCKS_PER_DAY:
-                logging.debug(f"we will cross a halvening, block: {height}")
                 crossed = True
                 month_we_crossed = m
 
                 # GO BLOCK BY BLOCK
-                for _ in range( EXPECTED_BLOCKS_PER_DAY ):
+                for _blk in range( EXPECTED_BLOCKS_PER_DAY ):
 
-                    #hashvalue += us.total_terahash() * (block_subsity( _blk ) + ns.fee_average) * (1 - user_pool_fee()) / _nh
-                    hashvalue += hashrate * (block_subsity( height ) + avgfee) * (1 - poolfee) / networh_hashrate
-                    #_kwh += us.total_wattage() / 6000 / us.total_terahash()
+                    sats_earned += hashrate * (block_subsity( height ) + avgfee) * (1 - poolfee) / networh_hashrate
                     _kwh += wattage / 6000
-
                     height += 1
+
+                    #logging.debug(f"block - block {height}, subsidy {block_subsity( height )}, nh {networh_hashrate/MEGAHASH:,.2f}, kWh {_kwh}")
 
             # DO A WHOLE DAY AT A TIME
             else:
-                logging.debug(f"we will NOT cross a halvening - calculating one day : at block {height} until: {blocks_until_halvening(height)}")
-
-                hashvalue += hashrate * (block_subsity( height ) + avgfee) * (1 - poolfee) * EXPECTED_BLOCKS_PER_DAY / networh_hashrate
-                #hashvalue += (block_subsity( _blk ) + ns.fee_average) * (1 - user_pool_fee()) * EXPECTED_BLOCKS_PER_DAY / _nh
-                #_kwh += 24 * us.total_wattage() / 1000 / us.total_terahash()
+                sats_earned += hashrate * (block_subsity( height ) + avgfee) * (1 - poolfee) * EXPECTED_BLOCKS_PER_DAY / networh_hashrate
                 _kwh += 24 * wattage / 1000
-
                 height += EXPECTED_BLOCKS_PER_DAY
+
+                #logging.debug(f"day - block {height}, subsidy {block_subsity( height )}, nh {networh_hashrate/MEGAHASH:,.2f}, kWh {_kwh}")
 
             # END OF DAY STUFF
             networh_hashrate *= 1 + hashgrow / 30
@@ -154,26 +196,20 @@ def calculate_projection(
         # if we have crossed the halvening AND it's been 'LAG MONTHS' since... use pricegrow2
         if crossed and m - month_we_crossed >= pricelag:
             price *= 1 + pricegrow2
-            logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
+            #logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
         else:
             # if we haven't crossed a halvening... OR it hasn't been 'LAG MONTHS' yet
             price *= 1 + pricegrow # 1 + pricegrow / 30 # daily
-            logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
-
+            #logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
 
         sold_e = btc(_kwh * kWh_rate, price=price)
         sold_o = btc(opex, price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
-        
-        # ARE WE JUST GOING TO FACTOR IN THE RESALE JUST LIKE THAT, HUH?  OK...
-        # TODO .. MAKE A NEW ONE CALLED RE-SALE RECAPTURE... AND IT LOWERS?  IS IT NEGATIVE?
+
         #sold_c = resale_percent * capex / months #already in 
-        sold_c = capex / months #already in btc terms
         #sold_c = capex / months #already in btc terms
 
         # basically, just the decision/assumption-making/verifying helper variables
-        #beprice = hashvalue * ((_kwh * cost_kWh) + (sold_c) + (opex / us.total_terahash())) / ONE_HUNDRED_MILLION
-        #beprice = ((_kwh * cost_kWh) + (dollar_capex) + (opex / us.total_terahash())) / hashvalue * ONE_HUNDRED_MILLION
-        breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (hashvalue - sold_c)
+        breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (sats_earned - btc(capex_in_sats, price=price))
 
         #if not crossed and 
         # TODO
@@ -193,12 +229,12 @@ def calculate_projection(
         res[KEY_ESTIMATED_PRICE].append( price )
         #res[KEY_ESTIMATED_AVGFEE].append( 0 )
 
-        res[KEY_HASHVALUE].append( hashvalue )
+        res[KEY_HASHVALUE].append( sats_earned )
         res[KEY_KWH].append( _kwh )
 
         res[KEY_SOLD_ELECTRICITY].append( sold_e )
         res[KEY_SOLD_OPEX].append( sold_o )
-        res[KEY_SOLD_CAPEX].append( sold_c )
+        res[KEY_SOLD_CAPEX].append( capexsats_per_months )
 
         res[KEY_BREAKEVEN_PRICE].append( breakeven_price )
         # KEY_BREAKEVEN_PRICE_P20P : [],

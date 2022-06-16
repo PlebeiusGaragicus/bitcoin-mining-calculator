@@ -84,12 +84,12 @@ def popup_get_stats_from_user() -> bool:
         This pop up asks the user for network stats - used when we can't get data from a node or the internet
     """
     result = popup_input([
-        pin.put_input('in_height', label='block height', type='number', value=pin.pin[PIN_HEIGHT]),
-        #pin.put_input('difficulty', label='difficulty', type='number', value=ns.difficulty),
-        pin.put_input('in_hashrate', label='network hashrate (in terahashes)', type='float', value=pin.pin[PIN_NETWORKHASHRATE]),
-        pin.put_input('in_price', label='bitcoin price', type='float', value=pin.pin[PIN_BTC_PRICE_NOW]),
-        pin.put_input('in_fee', label='average fee (in satoshi)', type='float', value=pin.pin[PIN_AVERAGEFEE])
-        ], names=['in_height', 'in_hashrate', 'in_price', 'in_fee'], title="Enter the current bitcoin network status")
+        pin.put_input('in_height', label='block height', type='number'),
+        pin.put_input('in_diff', label='difficulty', type='number')
+        #pin.put_input('in_hashrate', label='network hashrate (in terahashes)', type='float', value=pin.pin[PIN_NETWORKHASHRATE]),
+        #pin.put_input('in_price', label='bitcoin price', type='float', value=pin.pin[PIN_BTC_PRICE_NOW]),
+        #pin.put_input('in_fee', label='average fee (in satoshi)', type='float', value=pin.pin[PIN_AVERAGEFEE])
+        ], names=['in_height', 'in_diff'], title="Enter the current bitcoin network status")
 
     # USER HIT CANCEL
     if result == None:
@@ -101,30 +101,39 @@ def popup_get_stats_from_user() -> bool:
         return False
     else:
         h = result['in_height']
-        # d = result['difficulty']
-    if result['in_hashrate'] == None or result['in_hashrate'] <= 0:
-        output.toast("invalid hashrate")
+    
+    if result['in_diff'] == None or result['in_diff'] < 0:
+        output.toast("invalid difficulty")
         return False
     else:
-        nh = result['in_hashrate']
-    if result['in_price'] == None or result['in_price'] <= 0:
-        output.toast("invalid price")
-        return False
-    else:
-        p = result['in_price']
-    if result['in_fee'] == None or result['in_fee'] <= 0:
-        output.toast("invalid fee")
-        return False
-    else:
-        f = result['in_fee']
+        d = result['in_diff']
+
+    # if result['in_hashrate'] == None or result['in_hashrate'] <= 0:
+    #     output.toast("invalid hashrate")
+    #     return False
+    # else:
+    #     nh = result['in_hashrate']
+
+    # if result['in_price'] == None or result['in_price'] <= 0:
+    #     output.toast("invalid price")
+    #     return False
+    # else:
+    #     p = result['in_price']
+
+    # if result['in_fee'] == None or result['in_fee'] <= 0:
+    #     output.toast("invalid fee")
+    #     return False
+    # else:
+    #     f = result['in_fee']
 
     # TODO clean these numbers up...?  Round them???
-    pin.pin[PIN_BTC_PRICE_NOW] = p
-    pin.pin[PIN_BOUGHTATPRICE] = p
+    #pin.pin[PIN_BTC_PRICE_NOW] = p
+    #pin.pin[PIN_BOUGHTATPRICE] = p
     pin.pin[PIN_HEIGHT] = h
-    pin.pin[PIN_AVERAGEFEE] = f
-    pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-    pin.pin[PIN_NETWORKHASHRATE] = nh
+    pin.pin[PIN_NETWORKDIFFICULTY] = d
+    #pin.pin[PIN_AVERAGEFEE] = f
+    #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
+    #pin.pin[PIN_NETWORKHASHRATE] = nh
 
     return True
 
@@ -198,8 +207,79 @@ def feeanalysis():
 
 
 #######################
-def hashratehistory():
-    output.toast("not implemented yet... sorry")
+def popup_price_history():
+    """
+        This is the popup that shows the price history of bitcoin
+    """
+
+    # EPOCH_INTERVAL
+
+    path = useful_node()
+
+    if path != None:
+        # USING A NODE
+        pass
+    else:
+        # PULL FROM INTERNET
+        #f = get_average_block_fee_from_internet()
+        pass
+
+    price_df = get_luxor_price_as_df()
+
+    fig = go.Figure(data=go.Ohlc(x=price_df['timestamp'],
+                        open=price_df['open'],
+                        high=price_df['high'],
+                        low=price_df['low'],
+                        close=price_df['close']))
+
+    pr = fig.to_html(include_plotlyjs="require", full_html=False)
+
+    output.popup('bitcoin price history', size=output.PopupSize.LARGE, content=[
+        output.put_html(pr)
+        ], closable=True)
+
+############################################
+def popup_difficulty_history():
+    """
+        Return a list of network difficulty at first block of each epoch (0, 2016, ...)
+        Return None on error
+    """
+
+
+    ENDPOINT = 'https://api.hashrateindex.com/graphql'
+    lux = API(host=ENDPOINT, method='POST', key=API_KEY)
+
+    dhx = lux.get_network_difficulty("_1_YEAR")['data']['getChartBySlug']['data']
+    nh = lux.get_network_hashrate("_1_YEAR")['data']['getNetworkHashrate']['nodes']
+
+    print(len(dhx))
+    print(len(nh))
+
+    #fig = go.Figure()
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    #fig = make_subplots()
+
+    fig.add_trace(
+        go.Scatter(
+            x=[*range(len(dhx) // 2)],
+            y=[i['difficulty'] for x, i in enumerate(dhx) if x % 2 == 0],
+            name="difficulty",
+            line_color="#A50CAC" # PURPLE
+        ), secondary_y=False)
+    fig.add_trace(
+        go.Scatter(
+            x=[*range(len(nh))],
+            y=[i['networkHashrate'] for i in nh],
+            name="hashrate",
+            line_color="#5A5AAA"
+        ), secondary_y=True)
+
+    pr = fig.to_html(include_plotlyjs="require", full_html=False)
+
+    output.popup('network difficulty history', size=output.PopupSize.LARGE, content=[
+            output.put_html(pr)
+        ], closable=True)
+
 
 ########################################################################################
 # https://github.com/LuxorLabs/hashrateindex-api-python-client/blob/master/resolvers.py
