@@ -59,13 +59,10 @@ def show_projection():
     pricegrow2 = float(pin.pin[PIN_PRICEGROW2] / 100)
     pl = int(pin.pin[PIN_LAG])
 
-    resale_upper = pin.pin[PIN_RESELL_UPPER]
-    resale_lower = pin.pin[PIN_RESELL_LOWER]
+    resale_upper = pin.pin[PIN_RESELL]
+    #resale_lower = pin.pin[PIN_RESELL_LOWER]
 
 
-
-
-    #TODO SANITIZE INPUT - do a better job
     #TODO SANITIZE INPUT - do a better job
     if pin.pin['wattage'] == None or pin.pin['wattage'] <= 0:
         output.toast("invalid wattage - no miners added")
@@ -148,95 +145,99 @@ def show_projection():
 
 
 #######################
-def show_settings():
-    with output.use_scope("settings", clear=True):
+def show_user_interface_elements():
 
-        output.put_markdown('## Mining equipment purchase consideration')
+    output.put_markdown( MAIN_TEXT )
+    output.put_collapse(title="TOOLS:", content=[
+        output.put_button("fiat <-> bitcoin converter", onclick=popup_currencyconverter, color='info'),
+        output.put_button("break-even analysis", onclick=popup_breakeven, color='info')
+    ])
 
-        output.put_table([[
-                pin.put_input(name=PIN_WATTAGE, type='float', label="Wattage"),
-                pin.put_input(name=PIN_HASHRATE, type='float', label='Hashrate (in terahash)'),
-                pin.put_input(name=PIN_EFF, type='float', label="Efficiency (W/TH)", readonly=True),
-                pin.put_slider(name=PIN_EFF_SLIDER, value=0,min_value=1, max_value=170, label="efficiency slider")
-            ],[
-                pin.put_input(name=PIN_BOUGHTATPRICE, type='float', label='bitcoin price at time of purchase', value=pin.pin[PIN_BTC_PRICE_NOW]),
-                pin.put_input(name=PIN_COST, type='float', label='Dollar cost of machine'),
-                pin.put_input(name=PIN_SAT_PER_TH, type='text', label="Sats per TH", readonly=True),
-                pin.put_slider(name=PIN_COST_SLIDER, value=0,min_value=1, max_value=20_000, step=5, label="purchase amount slider")
-            ]])
-        pin.pin_on_change(name=PIN_BOUGHTATPRICE, onchange=boughtatprice_waschanged)
-        pin.pin_on_change(name=PIN_COST, onchange=cost_waschanged)
-        pin.pin_on_change(name=PIN_HASHRATE, onchange=hashrate_waschanged)
-        pin.pin_on_change(name=PIN_WATTAGE, onchange=wattage_waschanged)
-        pin.pin_on_change(name=PIN_COST_SLIDER, onchange=cost_slider)
-        pin.pin_on_change(name=PIN_EFF_SLIDER, onchange=eff_slider)
+    output.put_markdown('## Mining equipment purchase consideration')
 
-        #output.put_button("Analyze Miner", onclick=updateminerdata, color='success')
-
-        output.put_markdown("## Equipment resale / Depreciation Recapture")
-        output.put_table([[
-                pin.put_input(name=PIN_MONTHSTOPROJECT, type='number', value=DEFAULT_MONTHSTOPROJECT, label='Months until you re-sell this miner', help_text="Months to run projection"),
-                pin.put_checkbox(name=PIN_NEVERSELL, options=[OPTION_NEVERSELL], value=False)
-            ],[
-                pin.put_input(name=PIN_RESELL_UPPER, type='number', label="Resale % UPPER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_HIGH),
-                pin.put_input(name=PIN_UPPER_READONLY, type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
-            ]#,[
-                #pin.put_input(name=PIN_RESELL_LOWER, type='number', label="Resale % LOWER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_LOW),
-                #pin.put_input(PIN_LOWER_READONLY, type='number', label="Resale value LOWER LIMIT", readonly=True, help_text="($) resale amount")
-        #]
-        ])
-        pin.pin_on_change(name=PIN_NEVERSELL, onchange=neversell_waschanged)
-        pin.pin_on_change(PIN_RESELL_UPPER, onchange=upperresale_waschanged)
-        #pin.pin_on_change(PIN_RESELL_LOWER, onchange=lowerresale_waschanged)
-
-        output.put_markdown("---")
-        output.put_markdown("## Bitcoin network state")
-
-        output.put_table([[
-            pin.put_input(name=PIN_BTC_PRICE_NOW, type='float', label="Bitcoin price $", value=0),
-            pin.put_input(name=PIN_HEIGHT, type='float', label="blockchain height", value=0),
-            pin.put_input(name=PIN_NETWORKDIFFICULTY, type='float', label="network difficulty", value=0),
-            pin.put_input(name=PIN_NETWORKHASHRATE, type='text', label="network hashrate", value=0, readonly=True)
-            ],[
-            pin.put_input(name=PIN_AVERAGEFEE, type='float', label="average transaction fees per block", value=0),
-            output.put_button("block fee analysis", onclick=feeanalysis)
-            ]
-        ])
-        pin.pin_on_change(name=PIN_AVERAGEFEE, onchange=avgfee_waschanged)
-
-        output.put_markdown("---")
-        output.put_markdown("## Cost-of-production variables")
-        output.put_table([[
-            pin.put_input(PIN_KWH_RATE, type='float', label='your cost per kilowatt-hour: $', value=DEFAUL_KPKWH),
-            pin.put_input(PIN_POOLFEE, type='float', label='mining pool fee: %', value= DEFAULT_POOL_FEE),
-            pin.put_input(PIN_OPEX, type='float', label='monthly operational cost: $', value= DEFAULT_OPEX),
+    output.put_table([[
+            pin.put_input(name=PIN_WATTAGE, type='float', label="Wattage"),
+            pin.put_input(name=PIN_HASHRATE, type='float', label='Hashrate (in terahash)'),
+            pin.put_input(name=PIN_EFF, type='float', label="Efficiency (W/TH)", readonly=True),
+            pin.put_slider(name=PIN_EFF_SLIDER, value=0,min_value=1, max_value=170, label="efficiency slider")
+        ],[
+            pin.put_input(name=PIN_BOUGHTATPRICE, type='float', label='bitcoin price at time of purchase', value=pin.pin[PIN_BTC_PRICE_NOW]),
+            pin.put_input(name=PIN_COST, type='float', label='Dollar cost of machine'),
+            pin.put_input(name=PIN_SAT_PER_TH, type='text', label="Sats per TH", readonly=True),
+            pin.put_slider(name=PIN_COST_SLIDER, value=0,min_value=1, max_value=20_000, step=5, label="purchase amount slider")
         ]])
+    pin.pin_on_change(name=PIN_BOUGHTATPRICE, onchange=boughtatprice_waschanged)
+    pin.pin_on_change(name=PIN_COST, onchange=cost_waschanged)
+    pin.pin_on_change(name=PIN_HASHRATE, onchange=hashrate_waschanged)
+    pin.pin_on_change(name=PIN_WATTAGE, onchange=wattage_waschanged)
+    pin.pin_on_change(name=PIN_COST_SLIDER, onchange=cost_slider)
+    pin.pin_on_change(name=PIN_EFF_SLIDER, onchange=eff_slider)
 
-        output.put_markdown("---")
-        output.put_markdown("## Projection Parameters")
+    #output.put_button("Analyze Miner", onclick=updateminerdata, color='success')
 
-        output.put_table([[
-            pin.put_input(name=PIN_PRICEGROW, type='float', value=DEFAULT_PRICEGROW, label='Monthly price growth: %', help_text='how fast do you predict the bitcoin price will grow month-to-month?'),
-            pin.put_slider(PIN_PRICEGROW_SLIDER, label='Price growth slider', value=DEFAULT_PRICEGROW,min_value=-10.0, max_value=20.0, step=0.1),
-            output.put_button("price history analysis", onclick=popup_price_history)
-            ],[
-            pin.put_input(name=PIN_PRICEGROW2, type='float', value=DEFAULT_PRICEGROW2, label='Post-halvening price growth: %', help_text="How fast do you think the price will grow monthly post-halvening (and post 'lag')"),
-            pin.put_slider(name="post_halvening_slider", label='Price growth slider', value=DEFAULT_PRICEGROW2,min_value=-10.0, max_value=20.0, step=0.1),
-            pin.put_input(name=PIN_LAG, type='float', value=DEFAULT_LAG, label='Halvening price lag (months)', help_text="The price growth post-halvening sometimes lags a few months...")
-            ],[
-            pin.put_input(name=PIN_HASHGROW, type='float', value=DEFAULT_HASHGROW, label='Monthly hashrate growth: %'),
-            pin.put_slider(PIN_HASHGROW_SLIDER, value=DEFAULT_HASHGROW,min_value=-2.0, max_value=10.0, step=0.1),
-            output.put_button("hashrate history analysis", onclick=popup_difficulty_history)
-            ]
-        ])
-        pin.pin_on_change(PIN_PRICEGROW_SLIDER, onchange=pricegrow_slider)
-        pin.pin_on_change(name=PIN_PRICEGROW2_SLIDER, onchange=pricegrow2_slider)
-        pin.pin_on_change(PIN_HASHGROW_SLIDER, onchange=hashgrow_slider)
-        pin.pin_on_change(name=PIN_HASHGROW, onchange=hashgrow_waschanged)
+    output.put_markdown("## Equipment resale / Depreciation Recapture")
+    output.put_table([[
+            pin.put_input(name=PIN_MONTHSTOPROJECT, type='number', value=DEFAULT_MONTHSTOPROJECT, label='Months until you re-sell this miner', help_text="Months to run projection"),
+            pin.put_checkbox(name=PIN_NEVERSELL, options=[OPTION_NEVERSELL], value=False)
+        ],[
+            #pin.put_input(name=PIN_RESELL, type='number', label="Resale % UPPER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_HIGH),
+            pin.put_input(name=PIN_RESELL, type='number', label="Resale %", help_text="% percent of purchase price", value=DEFAULT_RESELL),
+            pin.put_input(name=PIN_UPPER_READONLY, type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
+        ]#,[
+            #pin.put_input(name=PIN_RESELL_LOWER, type='number', label="Resale % LOWER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_LOW),
+            #pin.put_input(PIN_LOWER_READONLY, type='number', label="Resale value LOWER LIMIT", readonly=True, help_text="($) resale amount")
+    #]
+    ])
+    pin.pin_on_change(name=PIN_NEVERSELL, onchange=neversell_waschanged)
+    pin.pin_on_change(PIN_RESELL, onchange=upperresale_waschanged)
+    #pin.pin_on_change(PIN_RESELL_LOWER, onchange=lowerresale_waschanged)
 
-        #pin.put_checkbox('verbose', options=['VERBOSE MODE - (put every variable on the spreadsheet)'], inline=True)
+    output.put_markdown("---")
+    output.put_markdown("## Bitcoin network state")
 
-        output.put_button( 'RUN PROJECTION', onclick=show_projection, color='warning' )
+    output.put_table([[
+        pin.put_input(name=PIN_BTC_PRICE_NOW, type='float', label="Bitcoin price $", value=0),
+        pin.put_input(name=PIN_HEIGHT, type='float', label="blockchain height", value=0),
+        pin.put_input(name=PIN_NETWORKDIFFICULTY, type='float', label="network difficulty", value=0),
+        pin.put_input(name=PIN_NETWORKHASHRATE, type='text', label="network hashrate", value=0, readonly=True)
+        ],[
+        pin.put_input(name=PIN_AVERAGEFEE, type='float', label="average transaction fees per block", value=0),
+        output.put_button("block fee analysis", onclick=feeanalysis)
+        ]
+    ])
+    pin.pin_on_change(name=PIN_AVERAGEFEE, onchange=avgfee_waschanged)
+
+    output.put_markdown("---")
+    output.put_markdown("## Cost-of-production variables")
+    output.put_table([[
+        pin.put_input(PIN_KWH_RATE, type='float', label='your cost per kilowatt-hour: $', value=DEFAUL_KPKWH),
+        pin.put_input(PIN_POOLFEE, type='float', label='mining pool fee: %', value= DEFAULT_POOL_FEE),
+        pin.put_input(PIN_OPEX, type='float', label='monthly operational cost: $', value= DEFAULT_OPEX),
+    ]])
+
+    output.put_markdown("---")
+    output.put_markdown("## Projection Parameters")
+
+    output.put_table([[
+        pin.put_input(name=PIN_PRICEGROW, type='float', value=DEFAULT_PRICEGROW, label='Monthly price growth: %', help_text='how fast do you predict the bitcoin price will grow month-to-month?'),
+        pin.put_slider(PIN_PRICEGROW_SLIDER, label='Price growth slider', value=DEFAULT_PRICEGROW,min_value=-10.0, max_value=20.0, step=0.1),
+        output.put_button("price history analysis", onclick=popup_price_history)
+        ],[
+        pin.put_input(name=PIN_PRICEGROW2, type='float', value=DEFAULT_PRICEGROW2, label='Post-halvening price growth: %', help_text="How fast do you think the price will grow monthly post-halvening (and post 'lag')"),
+        pin.put_slider(name="post_halvening_slider", label='Price growth slider', value=DEFAULT_PRICEGROW2,min_value=-10.0, max_value=20.0, step=0.1),
+        pin.put_input(name=PIN_LAG, type='float', value=DEFAULT_LAG, label='Halvening price lag (months)', help_text="The price growth post-halvening sometimes lags a few months...")
+        ],[
+        pin.put_input(name=PIN_HASHGROW, type='float', value=DEFAULT_HASHGROW, label='Monthly hashrate growth: %'),
+        pin.put_slider(PIN_HASHGROW_SLIDER, value=DEFAULT_HASHGROW,min_value=-2.0, max_value=10.0, step=0.1),
+        output.put_button("hashrate history analysis", onclick=popup_difficulty_history)
+        ]
+    ])
+    pin.pin_on_change(PIN_PRICEGROW_SLIDER, onchange=pricegrow_slider)
+    pin.pin_on_change(name=PIN_PRICEGROW2_SLIDER, onchange=pricegrow2_slider)
+    pin.pin_on_change(PIN_HASHGROW_SLIDER, onchange=hashgrow_slider)
+    pin.pin_on_change(name=PIN_HASHGROW, onchange=hashgrow_waschanged)
+
+    output.put_button( 'RUN PROJECTION', onclick=show_projection, color='warning' )
 
 
 
@@ -362,8 +363,8 @@ def cost_slider(usd_cost_of_miner: float):
         pin.pin[PIN_COST] = round(usd_cost_of_miner, 2)
 
         # I don't like this... we aren't sanitizing
-        upperresale_waschanged( pin.pin[PIN_RESELL_UPPER] )
-        lowerresale_waschanged( pin.pin[PIN_RESELL_LOWER] )
+        upperresale_waschanged( pin.pin[PIN_RESELL] )
+        #lowerresale_waschanged( pin.pin[PIN_RESELL_LOWER] )
 
         new_boughtatprice = float(pin.pin[PIN_BOUGHTATPRICE])
         pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=new_boughtatprice) / hr, 1):,.2f}"
@@ -422,8 +423,8 @@ def cost_waschanged(cost: float):
         pin.pin_update(name=PIN_SAT_PER_TH, help_text=f"${dollarsperth:.1f} / TH")
 
         # again... I'm not a fan of this.. nothing is sanitized
-        upperresale_waschanged( int(pin.pin[PIN_RESELL_UPPER]) )
-        lowerresale_waschanged( int(pin.pin[PIN_RESELL_UPPER]) )
+        upperresale_waschanged( int(pin.pin[PIN_RESELL]) )
+        #lowerresale_waschanged( int(pin.pin[PIN_RESELL_LOWER]) )
 
         btcuponpurchase = float(pin.pin[PIN_BOUGHTATPRICE])
     except Exception as e:
@@ -437,33 +438,33 @@ def cost_waschanged(cost: float):
 def neversell_waschanged( opt ):
     if OPTION_NEVERSELL in opt:
         # NEVER SELL
-        pin.pin_update(name=PIN_RESELL_UPPER, readonly=True)
-        pin.pin_update(name=PIN_RESELL_LOWER, readonly=True)
+        pin.pin_update(name=PIN_RESELL, readonly=True)
+        #pin.pin_update(name=PIN_RESELL_LOWER, readonly=True)
         pin.pin_update(name=PIN_MONTHSTOPROJECT, label="Expected machine life span")
     else:
         # WILL SELL
-        pin.pin_update(name=PIN_RESELL_UPPER, readonly=False)
-        pin.pin_update(name=PIN_RESELL_LOWER, readonly=False)
+        pin.pin_update(name=PIN_RESELL, readonly=False)
+        #pin.pin_update(name=PIN_RESELL_LOWER, readonly=False)
         pin.pin_update(name=PIN_MONTHSTOPROJECT, label="Months until you re-sell this miner")
 
 ####################################
 def upperresale_waschanged(v: int):
     try:
-        v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_UPPER] / 100)
+        v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL] / 100)
         pin.pin_update(PIN_UPPER_READONLY, value=v)
     except Exception as e:
         logging.debug("", exc_info=True)
         return
 
-####################################
-def lowerresale_waschanged(v: int):
-    try:
-        v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_LOWER] / 100)
-        pin.pin_update(PIN_LOWER_READONLY, value=v)
-    except Exception as e:
-        logging.debug("", exc_info=True)
-        return
-    pass
+# ####################################
+# def lowerresale_waschanged(v: int):
+#     try:
+#         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL_LOWER] / 100)
+#         pin.pin_update(PIN_LOWER_READONLY, value=v)
+#     except Exception as e:
+#         logging.debug("", exc_info=True)
+#         return
+#     pass
 
 ##########################################
 def hashgrow_waschanged( newval: float ):
