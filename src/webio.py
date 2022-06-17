@@ -150,7 +150,7 @@ def show_user_interface_elements():
     output.put_markdown( MAIN_TEXT )
     output.put_collapse(title="TOOLS:", content=[
         output.put_button("fiat <-> bitcoin converter", onclick=popup_currencyconverter, color='info'),
-        output.put_button("break-even analysis", onclick=popup_breakeven, color='info')
+        output.put_button("break-even analysis", onclick=popup_breakeven_analysis, color='info')
     ])
 
     output.put_markdown('## Mining equipment purchase consideration')
@@ -202,7 +202,7 @@ def show_user_interface_elements():
         pin.put_input(name=PIN_NETWORKHASHRATE, type='text', label="network hashrate", value=0, readonly=True)
         ],[
         pin.put_input(name=PIN_AVERAGEFEE, type='float', label="average transaction fees per block", value=0),
-        output.put_button("block fee analysis", onclick=feeanalysis)
+        output.put_button("block fee analysis", onclick=popup_fee_analysis)
         ]
     ])
     pin.pin_on_change(name=PIN_AVERAGEFEE, onchange=avgfee_waschanged)

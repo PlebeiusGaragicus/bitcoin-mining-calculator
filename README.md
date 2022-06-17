@@ -1,12 +1,11 @@
-# bitcoin-mining-calculator
+# the open-source bitcoin mining profitability calculator
 
-This tool helps you decide when to invest in bitcoin mining equipment
+This tool helps you decide when/if to invest in bitcoin mining equipment
 
 ```
 "All models are wrong, but some models are useful." 
     -statistician George Box
 ```
-
 
 This tool is for prospective bitcoin miners to understand the economics involved in bitcoin mining and to help aid in purchase decisions of bitcoin mining hardware - you can use it to calculate the potential earnings/costs of running any bitcoin mining equipment.  This project aims to be an open-source example of - and alternative to - bitcoin mining profitability calculators found online today (in 2022).  I hope to explain big concepts as I go and provide comments/documentation where possible to enable everyone's understanding of this technology.
 
@@ -27,12 +26,12 @@ source venv/bin/activate
 python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 
-chmod +x start_calculator.sh
+chmod +x ./run_calculator.sh
 ```
 
 ## How to run
 ```sh
-./start_calculator.sh
+./run_calculator.sh
 ```
 
 # How to Contribute

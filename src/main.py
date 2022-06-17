@@ -36,8 +36,7 @@ def download_bitcoin_network_data():
     else:
         logging.info(f"Bitcoin price: ${p:,.2f}")
 
-    pin.pin[PIN_BTC_PRICE_NOW] = p
-    pin.pin[PIN_BOUGHTATPRICE] = p
+    pin.pin[PIN_BTC_PRICE_NOW] = pin.pin[PIN_BOUGHTATPRICE] = p
 
     load_success = False
     path = useful_node()
@@ -45,10 +44,10 @@ def download_bitcoin_network_data():
         load_success = get_stats_from_node(path)
 
     if not load_success:
-        if not get_stats_from_luxor():
-            if not get_stats_from_internet():
-                if not popup_get_stats_from_user():
-                    output.toast("Unable to get bitcoin network status")
+        #if not get_stats_from_luxor():
+        if not get_stats_from_internet():
+            if not popup_get_stats_from_user():
+                output.toast("Unable to get bitcoin network status")
 
 #################
 def cleanup():
