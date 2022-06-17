@@ -46,9 +46,6 @@ def get_stats_from_luxor() -> bool:
 
     ENDPOINT = 'https://api.hashrateindex.com/graphql'
     lux = API(host=ENDPOINT, method='POST', key=API_KEY)
-
-    try:
-        data = lux.get_bitcoin_overview()['data']['bitcoinOverviews']['nodes']
 # [{'timestamp': '2022-06-09T02:34:43+00:00',
 # 'hashpriceUsd': '0.1264933082578627',
 # 'networkHashrate7D': '222015523.66824248',
@@ -61,30 +58,27 @@ def get_stats_from_luxor() -> bool:
 # 'nextHalvingDate': '2024-05-03T00:00:00+00:00',
 # 'txRateAvg7D': '2.8970980756008053'}]
 
-        diff = 0
+    try:
+        data = lux.get_bitcoin_overview()['data']['bitcoinOverviews']['nodes']
 
+        diff = data['networkDiff']
         #nh = lux.get_network_hashrate("_7_DAY")['data']['getNetworkHashrate']['nodes']
         nh = round(get_hashrate_from_difficulty(diff), 2)
 
-        price = lux.get_ohlc_prices("_1_DAY")['data']['getChartBySlug']['data']
-
-        # TODO DEBUG ONLY
-        output.toast("failed to fetch luxor data")
-        return False
+        #price = lux.get_ohlc_prices("_1_DAY")['data']['getChartBySlug']['data']
 
         output.toast("loading complete!!!", color='success')
     except Exception as e:
-        #logging.debug("", exc_info=True)
-        logging.debug("", exc_info=True)
+        logging.exception('')
         output.toast("Could not download network status.", color='error', duration=4)
         return False
 
-    pin.pin[PIN_BTC_PRICE_NOW] = 0
-    pin.pin[PIN_BOUGHTATPRICE] = 0
-    pin.pin[PIN_HEIGHT] = 0
-    pin.pin[PIN_AVERAGEFEE] = 0
-    #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
+    pin.pin[PIN_HEIGHT] = 0 # luxor does not provide the height
+    pin.pin[PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
     pin.pin[PIN_NETWORKHASHRATE] = 0
+    #pin.pin[PIN_AVERAGEFEE] = 0
+    #pin.pin[PIN_BOUGHTATPRICE] = 0
+    #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
 
     return True
 
@@ -194,8 +188,8 @@ def get_price() -> float:
 
     if p == -1:
         p = query_bitcoinprice_coinbase()
-    
-    return p
+
+    return round(p, 2)
 
 ########################################
 def query_bitcoinprice_luxor() -> float:
