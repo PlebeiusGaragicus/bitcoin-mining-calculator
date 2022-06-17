@@ -2,5 +2,5 @@
 . ./venv/bin/activate
 
 # run the calculator script
-python3 main.py $1
 # TODO - how do we pass more than one parameter to main.py???
+python3 ./src/main.py $1

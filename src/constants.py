@@ -49,7 +49,8 @@ DEFAULT_POOL_FEE = 0 # per-cent (2 == 2%; 0.1 == 0.1%)
 DEFAUL_KPKWH = 0.075 # dollars per kWh
 DEFAULT_OPEX = 15 # dollars
 DEFAULT_MONTHSTOPROJECT = 36
-DEFAULT_RESELL_HIGH = 75
+#DEFAULT_RESELL_HIGH = 75
+DEFAULT_RESELL = 75
 DEFAULT_RESELL_LOW = 50
 DEFAULT_PRICEGROW = 2
 DEFAULT_PRICEGROW2 = 18
@@ -91,8 +92,9 @@ PIN_POOLFEE = 'poolfee'
 PIN_OPEX = 'opex'
 PIN_MONTHSTOPROJECT = 'months'
 PIN_NEVERSELL = 'neversellmachine'
-PIN_RESELL_UPPER ='resellupper'
-PIN_RESELL_LOWER = 'reselllower'
+#PIN_RESELL_UPPER ='resellupper'
+PIN_RESELL ='resell'
+#PIN_RESELL_LOWER = 'reselllower'
 PIN_UPPER_READONLY = 'upper_resale'
 PIN_LOWER_READONLY = 'lower_resale'
 
@@ -116,7 +118,7 @@ KEY_HASH_GROWTH = 'hash growth'
 #KEY_HASH_GROWTH2 : hashgrow2,
 KEY_MONTHLY_OPEX = 'opex'
 KEY_CAPEX_SATS = 'capex'
-KEY_RESALE_UPPER = 'resale upper'
+KEY_RESALE = 'resale'
 #KEY_RESALE_LOWER = 'resale lower'
 KEY_POOLFEE = 'poolfee'
 KEY_RATE_KWH = 'rate kwh'

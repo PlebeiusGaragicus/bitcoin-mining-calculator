@@ -21,7 +21,7 @@ from data import *
 from webio import *
 from calcs import *
 
-def init():
+def download_bitcoin_network_data():
     """
         This tries to get the latest bitcoin network data + price
     """
@@ -64,12 +64,8 @@ def main():
     t.start()
     session.defer_call(cleanup)
 
-    with output.use_scope('main', clear=True):
-        output.put_markdown( MAIN_TEXT )
-        output.put_button("fiat <-> bitcoin converter", onclick=popup_currencyconverter, color='info')
-
-    show_settings()
-    init()
+    show_user_interface_elements()
+    download_bitcoin_network_data()
 
     # TODO DEBUG ONLY
     pin.pin[PIN_WATTAGE] = 3050
@@ -79,11 +75,10 @@ def main():
 
 #############################
 if __name__ == '__main__':
-    #logging.getLogger(__name__)
 
     logginglevel = logging.INFO
     server = True
-    # we use a slice to skip argv[0] which is the script
+    # we use a slice to skip argv[0] which is the path to this script
     for arg in sys.argv[1:]:
         found = False
         if arg == '--help' or arg == '-h':

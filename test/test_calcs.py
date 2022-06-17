@@ -2,6 +2,7 @@
 This module tests the functions in calcs.py
 """
 
+# reference to model after:
 # https://github.com/bitcoin/bitcoin/tree/master/test
 
 def test_block_subsity():
