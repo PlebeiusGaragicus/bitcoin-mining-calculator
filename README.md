@@ -40,10 +40,7 @@ This project is meant to be run on a system with a local bitcoin node running, n
 # Additional Features
 This project also includes a feature to analyse the history of both bitcoin price and difficulty/hashrate over time.  These features need an API key from Luxor - see: https://github.com/LuxorLabs/hashrateindex-api-python-client
 
-To enable, put your Luxor API key in a file called apikey.py in the format
-```python
-LUXOR_API_KEY = "<YOUR KEY HERE IN QUOTES>"
-```
+To enable, put your Luxor API key in a file called apikey
 
 This project also includes a feature to analyze the history of block fees but requires a local bitcoin core node to pull this data from.
 
