@@ -2,6 +2,9 @@
 This module tests the functions in calcs.py
 """
 
+import sys
+sys.path.append('../src/')
+
 # reference to model after:
 # https://github.com/bitcoin/bitcoin/tree/master/test
 

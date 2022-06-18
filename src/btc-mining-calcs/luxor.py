@@ -1,21 +1,21 @@
-# https://hashrateindex.com/blog/energy-curtailment-strike-price-api/
-# https://github.com/LuxorLabs/hashrateindex-api-python-client  
-# https://data.hashrateindex.com/network-data/btc
-# https://hashrateindex.com/
-
 """
-This module (provided by Luxor and modified by myself) interfaces with their API
+This module interfaces with Luxor's API
+    -- provided by Luxor and modified by myself
 
-THANKS LUXOR!!!
-
-<3 <3
+>> See also:
+- https://hashrateindex.com/blog/energy-curtailment-strike-price-api/
+- https://github.com/LuxorLabs/hashrateindex-api-python-client  
+- https://data.hashrateindex.com/network-data/btc
+- https://hashrateindex.com/
 """
 
 import json
 import requests
 from typing import Dict, Any
 
-class API:
+LUXOR_ENDPOINT = 'https://api.hashrateindex.com/graphql'
+
+class LuxorAPI:
     """
     A class used to interact with Luxor's HashrateIndex GraphQL API.
 

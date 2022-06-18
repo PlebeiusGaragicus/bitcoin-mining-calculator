@@ -8,7 +8,7 @@ This module contains the constants used in this project
 
 ######################################################################
 
-CLI_HELP = """
+CLI_USAGE_HELP = """
 ./start_calculator.sh
 
 -h or --help        - show this help
