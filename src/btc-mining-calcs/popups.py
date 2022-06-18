@@ -207,19 +207,9 @@ def popup_price_history():
         This is the popup that shows the price history of bitcoin
     """
 
-    # EPOCH_INTERVAL
-
-    path = useful_node()
-
-    if path != None:
-        # USING A NODE
-        pass
-    else:
-        # PULL FROM INTERNET
-        #f = get_average_block_fee_from_internet()
-        pass
-
     price_df = get_luxor_price_as_df()
+
+    #logging.debug(price_df)
 
     fig = go.Figure(data=go.Ohlc(x=price_df['timestamp'],
                         open=price_df['open'],
@@ -239,16 +229,15 @@ def popup_difficulty_history():
         Return a list of network difficulty at first block of each epoch (0, 2016, ...)
         Return None on error
     """
+    if config.apikey == None:
+        output.toast("Luxor API key is not supplied", color='error')
+        return
 
-
-    ENDPOINT = 'https://api.hashrateindex.com/graphql'
-    lux = API(host=ENDPOINT, method='POST', key=API_KEY)
+    lux = LuxorAPI(host=LUXOR_ENDPOINT, method='POST', key=config.apikey)
 
     dhx = lux.get_network_difficulty("_1_YEAR")['data']['getChartBySlug']['data']
     nh = lux.get_network_hashrate("_1_YEAR")['data']['getNetworkHashrate']['nodes']
-
-    print(len(dhx))
-    print(len(nh))
+    # Note - See issue: https://github.com/LuxorLabs/hashrateindex-api-python-client/issues/4
 
     #fig = go.Figure()
     fig = make_subplots(specs=[[{"secondary_y": True}]])

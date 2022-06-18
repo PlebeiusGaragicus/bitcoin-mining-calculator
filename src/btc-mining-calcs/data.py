@@ -15,20 +15,21 @@ from pywebio import output
 
 import pandas as pd
 
-from luxor_api import API
+from luxor import LuxorAPI, LUXOR_ENDPOINT
 
 from calcs import get_hashrate_from_difficulty
 
+import config
 
-try:
-    # keep it secret... keep it safe
-    import apikey
-    API_KEY = apikey.LUXOR_API_KEY
-except ModuleNotFoundError as e:
-    API_KEY = None
-    # we don't want to use the logging module here because it will init and run basicConfig()
-    # we don't want that becuase you can only run basicConfig once and we do that in main()
-    print("You don't seem to have a LUXOR api key.  That's ok")
+# try:
+#     # keep it secret... keep it safe
+#     import apikey
+#     API_KEY = apikey.LUXOR_API_KEY
+# except ModuleNotFoundError as e:
+#     API_KEY = None
+#     # we don't want to use the logging module here because it will init and run basicConfig()
+#     # we don't want that becuase you can only run basicConfig once and we do that in main()
+#     print("You don't seem to have a LUXOR api key.  That's ok")
 
 
 from constants import *
@@ -39,13 +40,13 @@ def get_stats_from_luxor() -> bool:
     """
         This gets the needed bitcoin network data from Luxor's beautiful API
     """
-    if API_KEY == None:
-        return False
+    if config.apikey == None:
+        output.toast("Luxor API key is not supplied", color='error')
+        return
 
     output.toast("Gathering data from luxor...", duration=2)
 
-    ENDPOINT = 'https://api.hashrateindex.com/graphql'
-    lux = API(host=ENDPOINT, method='POST', key=API_KEY)
+    lux = LuxorAPI(host=LUXOR_ENDPOINT, method='POST', key=config.apikey)
 # [{'timestamp': '2022-06-09T02:34:43+00:00',
 # 'hashpriceUsd': '0.1264933082578627',
 # 'networkHashrate7D': '222015523.66824248',
@@ -88,13 +89,13 @@ def get_luxor_price_as_df():
         I couldn't tell you what a data frame is.. but this function returns one
         returns None on error
     """
-    if API_KEY == None:
-        return None
-
-    ENDPOINT = 'https://api.hashrateindex.com/graphql'
-    lux = API(host=ENDPOINT, method='POST', key=API_KEY)
+    if config.apikey == None:
+        output.toast("Luxor API key is not supplied", color='error')
+        return
 
     try:
+        lux = LuxorAPI(host=LUXOR_ENDPOINT, method='POST', key=config.apikey)
+
         price = lux.get_ohlc_prices("ALL")['data']['getChartBySlug']['data']
         pdf = pd.DataFrame(price)
     except Exception as e:
@@ -197,12 +198,12 @@ def query_bitcoinprice_luxor() -> float:
         returns -1 on error
     """
 
-    if API_KEY == None:
-        return -1
+    if config.apikey == None:
+        output.toast("Luxor API key is not supplied", color='error')
+        return
 
     try:
-        ENDPOINT = 'https://api.hashrateindex.com/graphql'
-        lux = API(host=ENDPOINT, method='POST', key=API_KEY)
+        lux = LuxorAPI(host=LUXOR_ENDPOINT, method='POST', key=config.apikey)
         price = lux.get_ohlc_prices("_1_DAY")['data']['getChartBySlug']['data']
 
         # luxor's "_1_DAY" returns a bunch of data... the whole day's worth of price data every 15 minutes...

@@ -118,7 +118,7 @@ def calculate_projection(
         #KEY_HASH_GROWTH2 : hashgrow2,
         KEY_MONTHLY_OPEX : opex,
         KEY_CAPEX_SATS : capex_in_sats, # sats
-        KEY_RESALE_UPPER : resale_upper,
+        KEY_RESALE : resale_upper,
         #KEY_RESALE_LOWER : resale_lower,
         KEY_POOLFEE : poolfee, # whole number percent / need to divide by 100
         KEY_RATE_KWH : kWh_rate,

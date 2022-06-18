@@ -11,15 +11,13 @@ import logging
 from pywebio import pin
 from pywebio import output
 
+
+import config
 from constants import *
 from nodes import *
 from popups import *
 from data import *
 from calcs import *
-
-# the number of projections that we've run.
-# so we can increment the number when they are all displayed.
-analysisnumber = 0
 
 #######################
 def show_projection():
@@ -125,12 +123,11 @@ def show_projection():
 
     table = make_table_string(res)
 
-    global analysisnumber
-    analysisnumber += 1
+    config.analysisnumber += 1
 
     # SHOW GRAPH
     with output.use_scope("result"):
-        output.put_collapse(title=f"analysis #{analysisnumber}", content=[
+        output.put_collapse(title=f"analysis #{config.analysisnumber}", content=[
             output.put_html( pretty_graph(res) ),
             output.put_collapse("Monthly Breakdown Table", content=[
             output.put_markdown( table ),
@@ -140,9 +137,6 @@ def show_projection():
                 ]])
         ])
         ], position=output.OutputPosition.TOP, open=True)
-    #output.scroll_to('projection', position=output.Position.TOP)
-
-
 
 #######################
 def show_user_interface_elements():
@@ -172,8 +166,6 @@ def show_user_interface_elements():
     pin.pin_on_change(name=PIN_WATTAGE, onchange=wattage_waschanged)
     pin.pin_on_change(name=PIN_COST_SLIDER, onchange=cost_slider)
     pin.pin_on_change(name=PIN_EFF_SLIDER, onchange=eff_slider)
-
-    #output.put_button("Analyze Miner", onclick=updateminerdata, color='success')
 
     output.put_markdown("## Equipment resale / Depreciation Recapture")
     output.put_table([[
