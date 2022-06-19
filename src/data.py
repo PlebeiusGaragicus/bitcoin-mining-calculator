@@ -141,10 +141,13 @@ def get_stats_from_internet() -> bool:
 # https://www.blockchain.com/api/blockchain_api
 # https://blockchain.info/rawblock/<block_hash> _OR_ https://blockchain.info/rawblock/<block_hash>?format=hex
 # TODO I think we are off by one during countdown
-def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:
-    # TODO - USE A TRY EXCEPT BLOCK... OR ELSE FUCK FUCK FUCK.. ALSO JUST RETURN 0 AND ALERT THE USER WITH OUTPUT.TOAST
-    latest_hash = str(ur.urlopen(ur.Request('https://blockchain.info/q/latesthash')).read(),'utf-8')
-    blockheight = int(str(ur.urlopen(ur.Request(f'https://blockchain.info/rawblock/{latest_hash}')).read()).split('"height":')[1].split(',')[0])
+def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> float:
+    try:
+        latest_hash = str(ur.urlopen(ur.Request('https://blockchain.info/q/latesthash')).read(),'utf-8')
+        blockheight = int(str(ur.urlopen(ur.Request(f'https://blockchain.info/rawblock/{latest_hash}')).read()).split('"height":')[1].split(',')[0])
+    except ur.HTTPError as e:
+        logging.exception('')
+        return -1
 
     with output.popup(f"Averaging transactions fees for last {nBlocks} blocks...", closable=False) as p:
         pin.put_input("remaining", value=nBlocks, label="Blocks remaining:")
@@ -154,7 +157,12 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> in
 
         total_fee = 0
         for bdx in range(blockheight-nBlocks, blockheight):
-            block_data = str(ur.urlopen(ur.Request(f'https://blockchain.info/rawblock/{latest_hash}')).read())
+            try:
+                block_data = str(ur.urlopen(ur.Request(f'https://blockchain.info/rawblock/{latest_hash}')).read())
+            except ur.HTTPError as e:
+                logging.exception('')
+                return -1
+
             block_fee = int(block_data.split('"fee":')[1].split(',')[0])
             total_fee += block_fee
 
@@ -166,9 +174,9 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> in
 
             try:
                 pin.pin['feescroller'] = f"block: {bdx} --> fee: {block_fee:,}\n" + pin.pin["feescroller"]
-            except Exception as e:
-                logging.debug("", exc_info=True)
+            except TypeError as e:
                 # this error happens if the popup was closed
+                logging.debug("", exc_info=True)
                 return round(total_fee / (1 + bdx - block_height + nBlocks), 2)
             logging.debug(f"block: {bdx} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")
 
@@ -185,17 +193,24 @@ def get_price() -> float:
         Returns -1 on error
     """
     logging.debug("Getting price of bitcoin...")
-    p = query_bitcoinprice_luxor()
 
-    if p == -1:
+    if config.apikey != None:
+        p = query_bitcoinprice_luxor()
+    else:
         p = query_bitcoinprice_coinbase()
+
+    if p == -1 or p == None:
+        logging.warn("Unable to get the price of bitcoin")
+        output.toast("Unable to get the price of bitcoin", color='error')
+        #p = query_bitcoinprice_coinbase()
 
     return round(p, 2)
 
 ########################################
 def query_bitcoinprice_luxor() -> float:
     """
-        returns -1 on error
+        Returns the current bitcoin price for Luxor's API
+        Returns -1 on error
     """
 
     if config.apikey == None:

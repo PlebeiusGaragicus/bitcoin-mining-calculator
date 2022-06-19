@@ -155,7 +155,7 @@ def popup_currencyconverter():
             logging.debug("", exc_info=True)
             return
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
-        pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
+        pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:,.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
 
     def convert_to_fiat():
         try:

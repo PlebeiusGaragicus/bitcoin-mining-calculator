@@ -57,10 +57,16 @@ def useful_node():
     return bin_path
 
 #######################################
-def get_stats_from_node(path) -> bool:
+def get_stats_from_node(bcli_path) -> bool:
+    """
+        This function updates the 'pin' input fields (height, network difficulty and hashrate) by pulling
+            data from the supplied bitcoin-cli
+
+        Returns True if successful, False on error
+    """
     try:
-        h = node_blockheight(path)
-        diff = node_getdifficulty(path)
+        h = node_blockheight(bcli_path)
+        diff = node_getdifficulty(bcli_path)
         nh = round(get_hashrate_from_difficulty(diff), 2)
         #nh = round((d * 2 ** 32) / 600 / TERAHASH, 2)
         #nh = node_networkhashps(path)
@@ -112,7 +118,7 @@ def node_networkhashps(bcli_path, nblocks=120, height=-1) -> float:
     return float( nh.split('\n')[0] ) / TERAHASH
 
 ####################################################################
-def node_getdifficulty(bcli_path):
+def node_getdifficulty(bcli_path) -> float:
     """
         basically just runs the 'getdifficulty' command
         https://developer.bitcoin.org/reference/rpc/getdifficulty.html

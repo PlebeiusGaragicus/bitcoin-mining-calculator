@@ -11,13 +11,13 @@ import logging
 from pywebio import pin
 from pywebio import output
 
-
 import config
+from calcs import btc, make_table_string, pretty_graph
+import data
+import nodes
+import popups
+
 from constants import *
-from nodes import *
-from popups import *
-from data import *
-from calcs import *
 
 #######################
 def show_projection():
@@ -35,9 +35,9 @@ def show_projection():
         opex = float(pin.pin[PIN_OPEX])
         poolfee = float(pin.pin[PIN_POOLFEE] / 100)
         rate = float(pin.pin[PIN_KWH_RATE])
-    except Exception as e:
-        logging.debug("", exc_info=True)
-        output.toast("Something went wrong - make sure you didn't leave anything blank!")
+    except TypeError as e:
+        logging.exception('')
+        output.toast("Something went wrong - Check all the input fields!")
         return
 
     #nh = float(pin.pin[PIN_NETWORKHASHRATE])
@@ -58,7 +58,6 @@ def show_projection():
     pl = int(pin.pin[PIN_LAG])
 
     resale_upper = pin.pin[PIN_RESELL]
-    #resale_lower = pin.pin[PIN_RESELL_LOWER]
 
 
     #TODO SANITIZE INPUT - do a better job
@@ -96,28 +95,27 @@ def show_projection():
     with output.use_scope('projection', clear=True):
         output.put_markdown( "# PROJECTION SUMMARIES:" )
 
-    output.toast("re-calculating...", color='warn', duration=1)
+    output.toast("calculating...", color='warn', duration=1)
     ## ACTUALLY DO THE CALCULATIONS
-    res = calculate_projection(
-        months=m,
-        height=height,
-        avgfee=avgfee,
-        hashrate=hashrate,
-        wattage=wattage,
-        price=price,
-        pricegrow=pricegrow,
-        pricegrow2=pricegrow2,
-        pricelag=pl,
+    res = data.calculate_projection(
+        months = m,
+        height = height,
+        avgfee = avgfee,
+        hashrate = hashrate,
+        wattage = wattage,
+        price = price,
+        pricegrow = pricegrow,
+        pricegrow2 = pricegrow2,
+        pricelag = pl,
         #networh_hashrate=nh,
-        network_difficulty=diff,
-        hashgrow=hg,
-        kWh_rate=rate,
+        network_difficulty = diff,
+        hashgrow = hg,
+        kWh_rate = rate,
         #hashgrow2=hg2,
-        opex=opex,
-        capex_in_sats=btc(capex, price=price_when_bought),
-        resale_upper=resale_upper,
-        #resale_lower=resale_lower,
-        poolfee=poolfee,
+        opex = opex,
+        capex_in_sats = btc(capex, price=price_when_bought),
+        resale_upper = resale_upper,
+        poolfee = poolfee,
     )
     output.toast("done.", color='success', duration=1)
 
@@ -143,8 +141,8 @@ def show_user_interface_elements():
 
     output.put_markdown( MAIN_TEXT )
     output.put_collapse(title="TOOLS:", content=[
-        output.put_button("fiat <-> bitcoin converter", onclick=popup_currencyconverter, color='info'),
-        output.put_button("break-even analysis", onclick=popup_breakeven_analysis, color='info')
+        output.put_button("fiat <-> bitcoin converter", onclick=popups.popup_currencyconverter, color='info'),
+        output.put_button("break-even analysis", onclick=popups.popup_breakeven_analysis, color='info')
     ])
 
     output.put_markdown('## Mining equipment purchase consideration')
@@ -174,7 +172,7 @@ def show_user_interface_elements():
         ],[
             #pin.put_input(name=PIN_RESELL, type='number', label="Resale % UPPER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_HIGH),
             pin.put_input(name=PIN_RESELL, type='number', label="Resale %", help_text="% percent of purchase price", value=DEFAULT_RESELL),
-            pin.put_input(name=PIN_UPPER_READONLY, type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
+            pin.put_input(name=PIN_RESELL_READONLY, type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
         ]#,[
             #pin.put_input(name=PIN_RESELL_LOWER, type='number', label="Resale % LOWER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_LOW),
             #pin.put_input(PIN_LOWER_READONLY, type='number', label="Resale value LOWER LIMIT", readonly=True, help_text="($) resale amount")
@@ -194,7 +192,7 @@ def show_user_interface_elements():
         pin.put_input(name=PIN_NETWORKHASHRATE, type='text', label="network hashrate", value=0, readonly=True)
         ],[
         pin.put_input(name=PIN_AVERAGEFEE, type='float', label="average transaction fees per block", value=0),
-        output.put_button("block fee analysis", onclick=popup_fee_analysis)
+        output.put_button("block fee analysis", onclick=popups.popup_fee_analysis)
         ]
     ])
     pin.pin_on_change(name=PIN_AVERAGEFEE, onchange=avgfee_waschanged)
@@ -213,7 +211,7 @@ def show_user_interface_elements():
     output.put_table([[
         pin.put_input(name=PIN_PRICEGROW, type='float', value=DEFAULT_PRICEGROW, label='Monthly price growth: %', help_text='how fast do you predict the bitcoin price will grow month-to-month?'),
         pin.put_slider(PIN_PRICEGROW_SLIDER, label='Price growth slider', value=DEFAULT_PRICEGROW,min_value=-10.0, max_value=20.0, step=0.1),
-        output.put_button("price history analysis", onclick=popup_price_history)
+        output.put_button("price history analysis", onclick=popups.popup_price_history)
         ],[
         pin.put_input(name=PIN_PRICEGROW2, type='float', value=DEFAULT_PRICEGROW2, label='Post-halvening price growth: %', help_text="How fast do you think the price will grow monthly post-halvening (and post 'lag')"),
         pin.put_slider(name="post_halvening_slider", label='Price growth slider', value=DEFAULT_PRICEGROW2,min_value=-10.0, max_value=20.0, step=0.1),
@@ -221,7 +219,7 @@ def show_user_interface_elements():
         ],[
         pin.put_input(name=PIN_HASHGROW, type='float', value=DEFAULT_HASHGROW, label='Monthly hashrate growth: %'),
         pin.put_slider(PIN_HASHGROW_SLIDER, value=DEFAULT_HASHGROW,min_value=-2.0, max_value=10.0, step=0.1),
-        output.put_button("hashrate history analysis", onclick=popup_difficulty_history)
+        output.put_button("hashrate history analysis", onclick=popups.popup_difficulty_history)
         ]
     ])
     pin.pin_on_change(PIN_PRICEGROW_SLIDER, onchange=pricegrow_slider)
@@ -405,8 +403,7 @@ def cost_waschanged(cost: float):
         pin.pin[PIN_SAT_PER_TH] = ''
         pin.pin[PIN_COST_SLIDER] = ''
         pin.pin_update(name=PIN_COST, help_text='')
-        pin.pin_update(PIN_UPPER_READONLY, value='')
-        pin.pin_update(PIN_LOWER_READONLY, value='')
+        pin.pin_update(PIN_RESELL_READONLY, value='')
         return
     try:
         pin.pin[PIN_COST_SLIDER] = cost
@@ -443,7 +440,7 @@ def neversell_waschanged( opt ):
 def upperresale_waschanged(v: int):
     try:
         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL] / 100)
-        pin.pin_update(PIN_UPPER_READONLY, value=v)
+        pin.pin_update(PIN_RESELL_READONLY, value=v)
     except Exception as e:
         logging.debug("", exc_info=True)
         return

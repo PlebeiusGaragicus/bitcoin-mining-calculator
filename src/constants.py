@@ -1,12 +1,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
 """
 This module contains the constants used in this project
 """
 
 
-######################################################################
 
 CLI_USAGE_HELP = """
 ./start_calculator.sh
@@ -42,30 +40,28 @@ EXPECTED_BLOCKS_PER_DAY = 144           # 24 * 6
 
 # https://github.com/bitcoin/bitcoin/blob/0.21/src/chainparams.cpp#L69
 SUBSIDY_HALVING_INTERVAL = 210_000
-EPOCH_INTERVAL = 2016
+
+# https://github.com/bitcoin/bitcoin/blob/8e7eeb5971444c0c93e9a89bbdcc3a51a19e09e9/src/chainparams.cpp#L84
+POW_TARGET_SPACING = 2016 # AKA BLOCKS PER 'EPOCH'
 
 ### DEFAULT NUMBERS FOR THE USER INPUT FIELDS
 DEFAULT_POOL_FEE = 0 # per-cent (2 == 2%; 0.1 == 0.1%)
 DEFAUL_KPKWH = 0.075 # dollars per kWh
 DEFAULT_OPEX = 15 # dollars
 DEFAULT_MONTHSTOPROJECT = 36
-#DEFAULT_RESELL_HIGH = 75
 DEFAULT_RESELL = 75
-DEFAULT_RESELL_LOW = 50
 DEFAULT_PRICEGROW = 2
 DEFAULT_PRICEGROW2 = 18
 DEFAULT_LAG = 3
 DEFAULT_HASHGROW = 3
 DEFAULT_HASHGROW2 = -2
-#DEFAULT_THRESHOLD = 1000000
 
 # THESE ARE THE NAMES OF THE 'PIN' INPUT FIELDS
-# MINER DETAIL INPUT FIELDS
 PIN_COST = 'cost'
 PIN_WATTAGE = 'wattage'
 PIN_HASHRATE = 'hashrate'
 PIN_BOUGHTATPRICE = 'boughtatprice'
-# bitcoin price
+
 PIN_BTC_PRICE_NOW = 'price'
 PIN_PRICEGROW = 'pricegrow'
 PIN_PRICEGROW_SLIDER = 'pricegrow_slider'
@@ -92,11 +88,8 @@ PIN_POOLFEE = 'poolfee'
 PIN_OPEX = 'opex'
 PIN_MONTHSTOPROJECT = 'months'
 PIN_NEVERSELL = 'neversellmachine'
-#PIN_RESELL_UPPER ='resellupper'
 PIN_RESELL ='resell'
-#PIN_RESELL_LOWER = 'reselllower'
-PIN_UPPER_READONLY = 'upper_resale'
-PIN_LOWER_READONLY = 'lower_resale'
+PIN_RESELL_READONLY = 'resale_dollars'
 
 # This is the option 'list' for the PIN_NEVERSELL checkbox
 # Change this to change the text displayed

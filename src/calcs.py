@@ -71,7 +71,6 @@ def get_difficulty(bits: int):
 def get_hashrate_from_difficulty( difficulty: float) -> float:
     """
         Returns estimated network terahashes for a given network difficulty
-        # TODO wording
     """
     return (difficulty * 2 ** 32) / 600 / TERAHASH
 

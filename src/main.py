@@ -8,7 +8,6 @@ This is the main module that you run
 import sys, getopt
 import threading
 import logging
-from numpy import short
 
 from pywebio import pin
 from pywebio import output
@@ -16,7 +15,6 @@ from pywebio import session
 from pywebio import start_server
 
 from constants import *
-#from config import apikey
 import config
 from nodes import *
 from popups import *
@@ -97,7 +95,6 @@ if __name__ == '__main__':
     
     logginglevel = logging.INFO
     try:
-      #opts, args = getopt.getopt(sys.argv,"hdk:",["key="])
       opts, args = getopt.getopt(args=sys.argv[1:], shortopts="hdk:", longopts=['help', 'debug', 'key='])
     except getopt.GetoptError as err:
         #logging.exception(err) # can't use this becuase basicConfig has not been called yet!!!
