@@ -26,19 +26,19 @@ def blocks_until_halvening(block_height):
     return ((block_height // SUBSIDY_HALVING_INTERVAL + 1) * SUBSIDY_HALVING_INTERVAL) - block_height
 
 
-def fiat(sats, price):
+def fiat(sats, bitcoin_price):
     """
-        Convert sats into fiat at given price of bitcoin
+        Convert sats into fiat value at given price of bitcoin
     """
-    return sats * (price / ONE_HUNDRED_MILLION)
+    return sats * (bitcoin_price / ONE_HUNDRED_MILLION)
 
-def btc(fiat, price):
+def btc(fiat, bitcoin_price):
     """
         Convert fiat into sats at given price of bitcoin
     """
-    return int(ONE_HUNDRED_MILLION * (fiat / price))
+    return int(ONE_HUNDRED_MILLION * (fiat / bitcoin_price))
 
-def get_difficulty(bits: int):
+def get_difficulty(bits: int) -> float:
     """
         This converts the 'bits' field in a bitcoin block to the 'difficulty' number
 
@@ -97,7 +97,9 @@ def calculate_projection(
                         poolfee
                     ):
     """
-        The meat and potatoes function.  Yummy.
+        This function taken in all variables of interest and projects bitcoin earnings and fiat cost of running bitcoin miners
+
+        This function returns a dict with the projection results.
     """
 
     res = {
@@ -201,20 +203,14 @@ def calculate_projection(
             price *= 1 + pricegrow # 1 + pricegrow / 30 # daily
             #logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
 
-        sold_e = btc(_kwh * kWh_rate, price=price)
-        sold_o = btc(opex, price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
+        sold_e = btc(_kwh * kWh_rate, bitcoin_price=price)
+        sold_o = btc(opex, bitcoin_price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
 
         #sold_c = resale_percent * capex / months #already in 
         #sold_c = capex / months #already in btc terms
 
         # basically, just the decision/assumption-making/verifying helper variables
-        breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (sats_earned - btc(capex_in_sats, price=price))
-
-        #if not crossed and 
-        # TODO
-        # if no profit
-            # unplug
-        # if duck, fuck, squeeze... log it!
+        breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (sats_earned - btc(capex_in_sats, bitcoin_price=price))
 
         # duck fuck squeeze
         # if sold_e + sold_o + sold_c > hashvalue:
@@ -222,6 +218,7 @@ def calculate_projection(
         #     sold_e = 0
         #     sold_o = 0
         #     sold_c = 0
+        # log it!
 
         res[KEY_ESTIMATED_HEIGHT].append( height )
         res[KEY_ESTIMATED_NETWORK_HASHRATE].append( networh_hashrate )
@@ -238,20 +235,14 @@ def calculate_projection(
         res[KEY_BREAKEVEN_PRICE].append( breakeven_price )
         # KEY_BREAKEVEN_PRICE_P20P : [],
         # KEY_BREAKEVEN_NH : [],
-
-
     return res
-
-
-
-
 
 
 
 ##########################
 def pretty_graph(res):
     """
-        this takes the projection results and returns a pretty graph
+        this takes the projection results (returned by calculate_projection() and returns a pretty graph
     """
     #fig = go.Figure()
     fig = make_subplots(specs=[[{"secondary_y": True}]])

@@ -16,7 +16,7 @@ from pywebio import output
 from pywebio import pin
 
 from constants import *
-from calcs import *
+from calcs import get_hashrate_from_difficulty
 
 ###################
 def useful_node():
@@ -42,14 +42,15 @@ def useful_node():
         ibd = bool( node_info['initialblockdownload'] )
         logging.info(f"Node in Initial Block Download? {ibd}")
         progress = float( node_info['verificationprogress'] )
-    except Exception as e:
+    except json.decoder.JSONDecodeError as e:
+        #logging.exception("Error running `getblockchaininfo`")
         logging.warning("Your bitcoin node does not appear to be running.")
         return None
 
-    logging.info(node_info)
+    logging.info(f"getblockchaininfo: {node_info}")
 
     if ibd == True:
-        logging.error(f"ERROR: your node is currently downloading the blockchain, it is not fully sync'd yet ({float(progress * 100):.0f}% downloaded)")
+        logging.error(f"ERROR: your node is currently downloading the blockchain, it is not fully synced yet ({float(progress * 100):.0f}% downloaded)")
         return None
 
     logging.info(f"This node appears up-to-date - we can use it!")

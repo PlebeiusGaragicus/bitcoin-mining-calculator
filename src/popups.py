@@ -6,17 +6,20 @@ This module contains the functions for all the cool popups ;)
 """
 
 import threading
+import logging
 
 from pywebio import pin
 from pywebio import output
 
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+#from plotly.graph_objects import make_subplots
 import pandas as pd
 
 from constants import *
+from calcs import block_subsity
 from data import *
-from nodes import *
-
+from node import *
 
 #########################################################################
 # shamelessly stolen from here and modified
@@ -188,12 +191,14 @@ def popup_currencyconverter():
 
 ##########################
 def popup_fee_analysis():
-    # TODO can we record the fact that we have a node.. or not.. instead of doing this all over again?  k thanks
+    """
+        This creates a popup that averages the last 144 blocks in order to average transaction fees
 
-    path = useful_node()
+        TODO check if we are using a pruned node and warn the user
+    """
 
-    if path != None:
-        f = node_avgblockfee(path)
+    if config.node_path != None:
+        f = node_avgblockfee(config.node_path)
     else:
         f = get_average_block_fee_from_internet()
 
@@ -209,7 +214,7 @@ def popup_price_history():
 
     price_df = get_luxor_price_as_df()
 
-    #logging.debug(price_df)
+    logging.debug(price_df)
 
     fig = go.Figure(data=go.Ohlc(x=price_df['timestamp'],
                         open=price_df['open'],
@@ -267,7 +272,9 @@ def popup_difficulty_history():
 
 #################################
 def popup_breakeven_analysis():
-
+    """
+        This creates a popup with a break-even analysis tool for price, price/kWh and network hashrate
+    """
     def update_break_even( callback_throwaway ):
         """
             This call back is used for every onchange= 'pin' input field.

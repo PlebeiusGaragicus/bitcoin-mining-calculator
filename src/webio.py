@@ -12,9 +12,9 @@ from pywebio import pin
 from pywebio import output
 
 import config
-from calcs import btc, make_table_string, pretty_graph
+from calcs import btc, make_table_string, pretty_graph, calculate_projection
 import data
-import nodes
+import node
 import popups
 
 from constants import *
@@ -97,7 +97,7 @@ def show_projection():
 
     output.toast("calculating...", color='warn', duration=1)
     ## ACTUALLY DO THE CALCULATIONS
-    res = data.calculate_projection(
+    res = calculate_projection(
         months = m,
         height = height,
         avgfee = avgfee,
@@ -113,7 +113,7 @@ def show_projection():
         kWh_rate = rate,
         #hashgrow2=hg2,
         opex = opex,
-        capex_in_sats = btc(capex, price=price_when_bought),
+        capex_in_sats = btc(capex, bitcoin_price=price_when_bought),
         resale_upper = resale_upper,
         poolfee = poolfee,
     )
@@ -168,16 +168,16 @@ def show_user_interface_elements():
     output.put_markdown("## Equipment resale / Depreciation Recapture")
     output.put_table([[
             pin.put_input(name=PIN_MONTHSTOPROJECT, type='number', value=DEFAULT_MONTHSTOPROJECT, label='Months until you re-sell this miner', help_text="Months to run projection"),
-            pin.put_checkbox(name=PIN_NEVERSELL, options=[OPTION_NEVERSELL], value=False)
-        ],[
+            pin.put_checkbox(name=PIN_NEVERSELL, options=[OPTION_NEVERSELL], value=False),
+        #],[
             #pin.put_input(name=PIN_RESELL, type='number', label="Resale % UPPER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_HIGH),
             pin.put_input(name=PIN_RESELL, type='number', label="Resale %", help_text="% percent of purchase price", value=DEFAULT_RESELL),
             pin.put_input(name=PIN_RESELL_READONLY, type='number', label="Resale value UPPER LIMIT", readonly=True, help_text="($) resale amount")
-        ]#,[
+        #]#,[
             #pin.put_input(name=PIN_RESELL_LOWER, type='number', label="Resale % LOWER limit", help_text="% percent of purchase price", value=DEFAULT_RESELL_LOW),
             #pin.put_input(PIN_LOWER_READONLY, type='number', label="Resale value LOWER LIMIT", readonly=True, help_text="($) resale amount")
     #]
-    ])
+    ]])
     pin.pin_on_change(name=PIN_NEVERSELL, onchange=neversell_waschanged)
     pin.pin_on_change(PIN_RESELL, onchange=upperresale_waschanged)
     #pin.pin_on_change(PIN_RESELL_LOWER, onchange=lowerresale_waschanged)
@@ -292,7 +292,7 @@ def eff_slider( v: float ):
             return
 
         pin.pin_update(PIN_SAT_PER_TH, help_text=f"${dollarsperth:,.2f} / TH")
-        pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=boughtatprice) / hr, 1):,.2f}"
+        pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, bitcoin_price=boughtatprice) / hr, 1):,.2f}"
     except Exception as e:
         logging.debug("", exc_info=True)
         output.toast("Enter in mining equipment details first.")
@@ -357,9 +357,9 @@ def cost_slider(usd_cost_of_miner: float):
         #lowerresale_waschanged( pin.pin[PIN_RESELL_LOWER] )
 
         new_boughtatprice = float(pin.pin[PIN_BOUGHTATPRICE])
-        pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=new_boughtatprice) / hr, 1):,.2f}"
+        pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, bitcoin_price=new_boughtatprice) / hr, 1):,.2f}"
         pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (usd_cost_of_miner/new_boughtatprice):,.1f} sats")
-        #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, price=newprice) / hr, 1)
+        #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, bitcoin_price=newprice) / hr, 1)
     except Exception as e:
         logging.debug("", exc_info=True)
         return
@@ -382,7 +382,7 @@ def boughtatprice_waschanged(newprice: float):
         pin.pin[PIN_COST_SLIDER] = ''
         return
 
-    pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, price=newprice) / hr, 1):,.2f}"
+    pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, bitcoin_price=newprice) / hr, 1):,.2f}"
     pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (usd_cost_of_miner/newprice):,.1f} sats")
     #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, price=newprice) / hr, 1)
 
@@ -421,7 +421,7 @@ def cost_waschanged(cost: float):
         return
     
     pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (cost/btcuponpurchase):,.1f} sats")
-    pin.pin[PIN_SAT_PER_TH] = f"{round(btc(cost, price=btcuponpurchase) / hr, 1):,.2f}"
+    pin.pin[PIN_SAT_PER_TH] = f"{round(btc(cost, bitcoin_price=btcuponpurchase) / hr, 1):,.2f}"
 
 ###############################
 def neversell_waschanged( opt ):

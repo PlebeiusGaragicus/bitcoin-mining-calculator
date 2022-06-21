@@ -16,10 +16,10 @@ from pywebio import start_server
 
 from constants import *
 import config
-from nodes import *
-from popups import *
-from webio import *
-from calcs import *
+from data import get_price, get_stats_from_internet
+from node import useful_node, get_stats_from_node
+from popups import popup_get_price_from_user, popup_get_stats_from_user
+from webio import show_user_interface_elements
 
 def download_bitcoin_network_data():
     """
@@ -39,9 +39,9 @@ def download_bitcoin_network_data():
     pin.pin[PIN_BTC_PRICE_NOW] = pin.pin[PIN_BOUGHTATPRICE] = p
 
     load_success = False
-    path = useful_node()
-    if path != None:
-        load_success = get_stats_from_node(path)
+    config.node_path = useful_node()
+    if config.node_path != None:
+        load_success = get_stats_from_node(config.node_path)
 
     if not load_success:
         #if not get_stats_from_luxor():
@@ -67,10 +67,11 @@ def main():
     download_bitcoin_network_data()
 
     # TODO DEBUG ONLY
-    pin.pin[PIN_WATTAGE] = 3050
-    pin.pin[PIN_HASHRATE] = 90
-    pin.pin[PIN_COST] = 5375
-    pin.pin[PIN_BOUGHTATPRICE] = 29500
+    if "--debug" in sys.argv:
+        pin.pin[PIN_WATTAGE] = 3050
+        pin.pin[PIN_HASHRATE] = 90
+        pin.pin[PIN_COST] = 5375
+        pin.pin[PIN_BOUGHTATPRICE] = 29500
 
 #############################
 if __name__ == '__main__':

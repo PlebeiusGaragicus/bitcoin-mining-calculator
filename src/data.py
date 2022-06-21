@@ -15,11 +15,9 @@ from pywebio import output
 
 import pandas as pd
 
-from luxor import LuxorAPI, LUXOR_ENDPOINT
-
-from calcs import get_hashrate_from_difficulty
-
 import config
+from luxor import LuxorAPI, LUXOR_ENDPOINT
+from calcs import get_hashrate_from_difficulty
 
 # try:
 #     # keep it secret... keep it safe
@@ -176,7 +174,8 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> fl
                 pin.pin['feescroller'] = f"block: {bdx} --> fee: {block_fee:,}\n" + pin.pin["feescroller"]
             except TypeError as e:
                 # this error happens if the popup was closed
-                logging.debug("", exc_info=True)
+                #logging.debug("", exc_info=True)
+                logging.exception("This error is expected if you push the 'stop early' button")
                 return round(total_fee / (1 + bdx - block_height + nBlocks), 2)
             logging.debug(f"block: {bdx} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")
 
