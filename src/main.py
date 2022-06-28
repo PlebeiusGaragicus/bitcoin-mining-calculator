@@ -24,7 +24,7 @@ from webio import show_user_interface_elements, update_numbers
 def download_bitcoin_network_data():
     """
         This tries to get the latest bitcoin network data + price
-    """
+    """ 
 
     p = get_price()
 
@@ -54,6 +54,7 @@ def enter_debug_values() -> None:
     pin.pin[PIN_WATTAGE] = 3050
     pin.pin[PIN_COST] = 5375
     pin.pin[PIN_HASHRATE] = 90
+    pin.pin[PIN_BOUGHTATPRICE] = 29500
 
 #################
 def cleanup():
@@ -74,12 +75,12 @@ def main():
     enter_debug_values()
     update_numbers() # this is the callback function used to ensure all UI read_only fields are updated
 
-    # TODO DEBUG ONLY
-    if "--debug" in sys.argv:
-        pin.pin[PIN_WATTAGE] = 3050
-        pin.pin[PIN_HASHRATE] = 90
-        pin.pin[PIN_COST] = 5375
-        pin.pin[PIN_BOUGHTATPRICE] = 29500
+    # # TODO DEBUG ONLY
+    # if "--debug" in sys.argv:
+    #     pin.pin[PIN_WATTAGE] = 3050
+    #     pin.pin[PIN_HASHRATE] = 90
+    #     pin.pin[PIN_COST] = 5375
+    #     pin.pin[PIN_BOUGHTATPRICE] = 29500
 
 #############################
 if __name__ == '__main__':
@@ -113,7 +114,7 @@ if __name__ == '__main__':
     for opt, arg in opts:
         if opt in ("-h", "--help"):
             print(CLI_USAGE_HELP)
-            exit(1)
+            exit(0)
         elif opt in ("-d", "--debug"):
             logginglevel = logging.DEBUG
         elif opt in ("-k", "--key"):

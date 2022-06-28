@@ -12,48 +12,53 @@ from plotly.subplots import make_subplots
 
 from constants import *
 
-# https://github.com/bitcoin/bitcoin/blob/b71d37da2c8c8d2a9cef020731767a6929db54b4/src/validation.cpp#L1479-L1490
-def block_subsity( height ):
+####################################
+def block_subsity( height ) -> int:
     """
         This returns the coinbase reward in satoshi for a given block height
+
+        see: https://github.com/bitcoin/bitcoin/blob/b71d37da2c8c8d2a9cef020731767a6929db54b4/src/validation.cpp#L1479-L1490
     """
     return (50 * ONE_HUNDRED_MILLION) >> (height // SUBSIDY_HALVING_INTERVAL)
 
-def blocks_until_halvening(block_height):
+#################################################
+def blocks_until_halvening(block_height) -> int:
     """
         This tells you how many blocks until the next halvening
     """
     return ((block_height // SUBSIDY_HALVING_INTERVAL + 1) * SUBSIDY_HALVING_INTERVAL) - block_height
 
-def hash_price() -> float:
-    return 0.0
 
-def hash_value() -> float:
-    return 0.0
-
-def fiat(sats, bitcoin_price):
+########################################
+def fiat(sats, bitcoin_price) -> float:
     """
         Convert sats into fiat value at given price of bitcoin
     """
     return sats * (bitcoin_price / ONE_HUNDRED_MILLION)
 
-def btc(fiat, bitcoin_price):
+#######################################
+def btc(fiat, bitcoin_price) -> float:
     """
         Convert fiat into sats at given price of bitcoin
     """
     return int(ONE_HUNDRED_MILLION * (fiat / bitcoin_price))
 
 
-def calc_hashvalue(subsidy, fees, difficulty) -> float:
+###################################################
+def hash_value(subsidy, fees, difficulty) -> float:
+    """
+        This will return the hash value
+    """
     nh = get_hashrate_from_difficulty(difficulty)
 
     return (subsidy + fees) / nh
 
+###########################
+def hash_price() -> float:
+    raise NotImplementedError
+    return 0.0
 
-
-
-
-
+########################################
 def get_difficulty(bits: int) -> float:
     """
         This converts the 'bits' field in a bitcoin block to the 'difficulty' number
@@ -84,6 +89,7 @@ def get_difficulty(bits: int) -> float:
 
     return diff
 
+###############################################################
 def get_hashrate_from_difficulty( difficulty: float) -> float:
     """
         Returns estimated network terahashes for a given network difficulty
@@ -109,9 +115,8 @@ def calculate_projection(
                         opex,
                         capex_in_sats,
                         resale_upper,
-                        #resale_lower,
                         poolfee
-                    ):
+                    ) -> dict:
     """
         This function taken in all variables of interest and projects bitcoin earnings and fiat cost of running bitcoin miners
 
@@ -255,7 +260,7 @@ def calculate_projection(
 
 
 
-##########################
+#######################
 def pretty_graph(res):
     """
         this takes the projection results (returned by calculate_projection() and returns a pretty graph
@@ -346,27 +351,27 @@ def pretty_graph(res):
     #     ))
 
     # Set x-axis title
-    fig.update_xaxes(title_text="xaxis title")
+    fig.update_xaxes(title_text="time (months)")
 
     # Set y-axes titles
     fig.update_yaxes(title_text="<b>satoshi</b>", secondary_y=False)
     fig.update_yaxes(title_text="<b>Bitcoin price</b>", secondary_y=True)
 
     fig.update_layout(barmode='stack')
-    return fig.to_html(include_plotlyjs="require", full_html=False)
+    html = fig.to_html(include_plotlyjs="require", full_html=False)
+
+    logging.debug(html)
+
+    return html
 
 
-
-
-##########################
+###################################
 def make_table_string(res) -> str:
-# 1       2              3                             4
     str_table = \
-    """
-    | month | block height | network hashrate (exahash) | btc price |
-    | :--- | ---: | ---: | ---: |
-    """
-    # 1         2      3      4   
+"""| month | block height | network exahash | btc price |
+| :--- | ---: | ---: | ---: |
+"""
+    # 1         2      3      4
 
                             #    1    2    3    4 
     str_table_row_format = """| %s | %s | %s | %s |"""
@@ -376,7 +381,7 @@ def make_table_string(res) -> str:
             f"{mdx + 1}",
             f"{res[KEY_ESTIMATED_HEIGHT][mdx]:,}",
             f"{res[KEY_ESTIMATED_NETWORK_HASHRATE][mdx]/MEGAHASH:,.2f}",
-            f"{res[KEY_ESTIMATED_PRICE][mdx]:,.2f}",
+            f"{res[KEY_ESTIMATED_PRICE][mdx]:,.2f}"
         )
         str_table += '\n'
 
@@ -396,4 +401,3 @@ def make_table_string(res) -> str:
     #     story += "You've decided to sell ALL the bitcoin you withdrawal and roll in stead money coming your way."
 
     return str_table
-

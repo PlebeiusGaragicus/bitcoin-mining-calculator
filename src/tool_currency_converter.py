@@ -24,13 +24,13 @@ if __name__ == '__main__':
 
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
 
-        output.put_text(f"[{amnt:,.2f} dollars @ price:{price:,.2f}] = {r:,.2f} satoshi")
+        output.put_text(f"[{amnt:,.2f} fiat @ price:{price:,.2f}] = {r:,.2f} satoshi")
 
     def convert_to_fiat():
         amnt = float(pin.pin["amount"])
         price = float(pin.pin["price"])
         r = amnt * (price / ONE_HUNDRED_MILLION)
-        output.put_text(f"[{amnt:,.2f} satoshi @ price:{price:,.2f}] = {r:,.2f} dollars")
+        output.put_text(f"[{amnt:,.2f} satoshi @ price:{price:,.2f}] = {r:,.2f} fiat")
 
     output.put_markdown( """# uhhh... how many sats is that?""" )
     output.put_row(content=[
@@ -41,8 +41,8 @@ if __name__ == '__main__':
         output.put_column(content=[
             pin.put_input("amount", type="float", label="Amount to convert"),
             output.put_column(content=[
-                output.put_button("sats -> dollars", onclick=convert_to_fiat),
-                output.put_button("dollars -> sats", onclick=convert_to_sat)
+                output.put_button("sats -> fiat", onclick=convert_to_fiat),
+                output.put_button("fiat -> sats", onclick=convert_to_sat)
                 ])
             ])
     ])

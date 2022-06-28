@@ -19,9 +19,9 @@ CLI_USAGE_HELP = """
 
 MAIN_TEXT = """# Open-Source Bitcoin Mining Profitability Calculator
 
-__The goal of this project is to inspire__ people to learn more about bitcoin's built-in incentive structure - mining.
+__The goal of this project is to inspire__ people to learn about bitcoin's built-in incentive structure - mining.
 
-__The purpose of this tool is to__ help bitcoin miners make the best business decisions - how much to pay for equipment and what operating environment is needed to be profitable.
+__The purpose of this tool is to__ help bitcoin miners make sound business decisions - namely, how much to pay for equipment and what operating environment is needed to be profitable.
 """
 
 HASH     = 1                            # 10**0
@@ -46,14 +46,14 @@ POW_TARGET_SPACING = 2016 # AKA BLOCKS PER 'EPOCH'
 
 ### DEFAULT NUMBERS FOR THE USER INPUT FIELDS
 DEFAULT_POOL_FEE = 0 # per-cent (2 == 2%; 0.1 == 0.1%)
-DEFAUL_KPKWH = 0.075 # dollars per kWh
-DEFAULT_OPEX = 15 # dollars
+DEFAUL_KPKWH = 0.075 # fiats per kWh
+DEFAULT_OPEX = 15 # fiats
 DEFAULT_MONTHSTOPROJECT = 36
 DEFAULT_RESELL = 75
 DEFAULT_PRICEGROW = 2
 DEFAULT_PRICEGROW2 = 18
 DEFAULT_LAG = 3
-DEFAULT_HASHGROW = 3
+DEFAULT_HASHGROW = 1.2
 DEFAULT_HASHGROW2 = -2
 
 # THESE ARE THE NAMES OF THE 'PIN' INPUT FIELDS

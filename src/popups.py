@@ -66,18 +66,18 @@ def popup_get_price_from_user():
         This is used if we can't download the price from the internet
     """
     result = popup_input([
-        pin.put_input('price', label='bitcoin price', type='float', value=pin.pin[PIN_BTC_PRICE_NOW])
-        ], names=['price'], title="What is the current bitcoin price?")
+        pin.put_input('user_price', label='bitcoin price', type='float', value=pin.pin[PIN_BTC_PRICE_NOW])
+        ], names=['user_price'], title="What is the current bitcoin price?")
 
     # USER HIT CANCEL
     if result == None:
         return -1
 
-    if result['price'] == None or result['price'] <= 0:
+    if result['user_price'] == None or result['user_price'] <= 0:
         output.toast("invalid price")
         return -1
     else:
-        p = result['price']
+        p = result['user_price']
 
     return p
 
@@ -181,8 +181,8 @@ def popup_currencyconverter():
             output.put_column(content=[
                 pin.put_input("amount", type="float", label="Amount to convert"),
                 output.put_column(content=[
-                    output.put_button("sats -> dollars", onclick=convert_to_fiat),
-                    output.put_button("dollars -> sats", onclick=convert_to_sat)
+                    output.put_button("sats -> fiat", onclick=convert_to_fiat),
+                    output.put_button("fiat -> sats", onclick=convert_to_sat)
                     ])
                 ])
         ]),
