@@ -101,7 +101,6 @@ if __name__ == '__main__':
     #         print(CLI_HELP)
     #         exit(1)
 
-    
     logginglevel = logging.INFO
     try:
       opts, args = getopt.getopt(args=sys.argv[1:], shortopts="hdk:", longopts=['help', 'debug', 'key='])

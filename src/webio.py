@@ -119,11 +119,11 @@ def show_projection():
 
     table = calcs.make_table_string(res)
 
-    config.analysisnumber += 1
+    config.analysis_number += 1
 
     # SHOW GRAPH
     with output.use_scope("result"):
-        output.put_collapse(title=f"analysis #{config.analysisnumber}", content=[
+        output.put_collapse(title=f"analysis #{config.analysis_number}", content=[
             output.put_html( calcs.pretty_graph(res) ),
             output.put_collapse("Monthly Breakdown Table", content=[
             output.put_markdown( table ),
@@ -190,18 +190,18 @@ def show_user_interface_elements():
             pin.put_checkbox(name=PIN_NEVERSELL, options=[OPTION_NEVERSELL], value=False),
             pin.put_input(name=PIN_MONTHSTOPROJECT, type='number', value=DEFAULT_MONTHSTOPROJECT, label='Months until you re-sell this miner', help_text="Months to run projection"),
             pin.put_input(name=PIN_RESELL, type='number', label="Resale %", help_text="% percent of purchase price", value=DEFAULT_RESELL),
-            pin.put_input(name=PIN_RESELL_READONLY, type='number', label="Resale price", readonly=True, help_text="($) resale amount")
+            pin.put_input(name=PIN_RESELL_READONLY, type='text', label="Resale price", readonly=True)
     ]])
-    pin.pin_on_change(name=PIN_NEVERSELL, onchange=update_resell)
+    pin.pin_on_change(name=PIN_NEVERSELL, onchange=toggle_resell) # this toggles (disable/enables) other input fields
     pin.pin_on_change(PIN_RESELL, onchange=update_numbers)
 
     output.put_markdown("---")
     output.put_markdown("### Cost-of-production")
     output.put_table([[
         pin.put_input(PIN_KWH_RATE, type='float', label='cost per kilowatt-hour: $', value=DEFAUL_KPKWH),
-        pin.put_input(PIN_OPEX, type='float', label='monthly operational cost: $', value= DEFAULT_OPEX),
         pin.put_input(PIN_POOLFEE, type='float', label='mining pool fee: %', value= DEFAULT_POOL_FEE),
-        pin.put_input(PIN_HASHEXPENSE, type='float', label='hash expense', value=0, readonly = True, help_text='your cost-of-production per Terahash per day')
+        pin.put_input(PIN_HASHEXPENSE, type='float', label='hash expense', value=0, readonly = True, help_text='your cost-of-production per Terahash per day'),
+        pin.put_input(PIN_OPEX, type='float', label='monthly operational cost: $', value= DEFAULT_OPEX)
     ]])
     pin.pin_on_change(PIN_KWH_RATE, onchange=update_numbers)
     pin.pin_on_change(PIN_OPEX, onchange=update_numbers)
@@ -357,6 +357,22 @@ def get_entered_machine_cost() -> float:
         return None
     return ret
 
+###########################################
+def get_entered_resell_percent() -> float:
+    """
+        This returns the entered cost of the ASIC
+        None is returned on error (eg. input is blank) or is less than zero
+    """
+    try:
+        ret =  float(pin.pin[PIN_RESELL] / 100)
+    except TypeError:
+        logging.debug('resell percent - input field blank', exc_info=True)
+        return None
+
+    if ret < 0.000:
+        return None
+    return ret
+
 #################################
 def get_entered_rate() -> float:
     """
@@ -381,7 +397,7 @@ def get_entered_poolfee() -> float:
         None is returned on error (eg. input is blank)
     """
     try:
-        ret =  float(pin.pin[PIN_POOLFEE])
+        ret =  float(pin.pin[PIN_POOLFEE] / 1000)
     except TypeError:
         logging.debug('mining pool fee - input field blank', exc_info=True)
         return None
@@ -470,8 +486,8 @@ def update_hashprice() -> None:
         logging.debug('ummm...', exc_info=True)
         return
 
-    r = calcs.fiat(hv, price) * EXPECTED_BLOCKS_PER_DAY
-    pin.pin[PIN_HASHPRICE] = f"$ {r:,.2f}"
+    r = calcs.fiat(hv, price)
+    pin.pin[PIN_HASHPRICE] = f"$ {r:,.4f}"
 
 ###########################
 def update_cost() -> None:
@@ -501,7 +517,6 @@ def update_satsperth() -> None:
         return
 
     ret = calcs.btc(cost, bought_price) / hashrate
-    #sats_paid = (cost / bought_price * ONE_HUNDRED_MILLION)
 
     pin.pin[PIN_SAT_PER_TH] = f"{ret:,.2f}"
 
@@ -525,6 +540,9 @@ def update_fiatperth() -> None:
 
 ##########################
 def update_eff() -> None:
+    """
+        ...
+    """
     wattage = get_entered_wattage()
     hashrate = get_entered_hashrate()
 
@@ -539,8 +557,26 @@ def update_eff() -> None:
 
     pin.pin[PIN_EFF] = f"{eff:,.2f}"
 
+#############################
+def update_resell() -> None:
+    """
+        ...
+    """
+    cost = get_entered_machine_cost()
+    resell = get_entered_resell_percent()
+
+    if None in (cost, resell):
+        pin.pin_update(PIN_RESELL_READONLY, value='')
+        print("cost", cost)
+        print("resell", resell)
+        return
+
+    price = cost * resell
+
+    pin.pin[PIN_RESELL_READONLY] = f"$ {price:,.2f}"
+
 ##########################
-def update_resell( opt ) -> None:
+def toggle_resell( opt ) -> None:
     """
         This is the callback for the 'resell' radio button PIN_RESELL
     """
@@ -557,35 +593,26 @@ def update_resell( opt ) -> None:
 
 ##################################
 def update_hashexpense() -> None:
-    #wattage = get_entered_wattage()
-    #update_hashrate
     eff = pin.pin[PIN_EFF] # we're just going to read from this input field so we don't have to duplicate too much shit
     rate = get_entered_rate()
     poolfee = get_entered_poolfee()
-    opex = get_entered_opex()
     price = get_entered_price()
 
     try:
-        hv = float(str(pin.pin[PIN_HASHVALUE]).replace(' sats', ''))
+        hp = float(str(pin.pin[PIN_HASHPRICE]).replace('$ ', ''))
     except ValueError:
         logging.debug('', exc_info=True) # this way it only shows up in debug mode
         pin.pin[PIN_HASHEXPENSE] = ''
         return
 
-    if None in (eff, rate, poolfee, opex, price, hv):
+    if None in (eff, rate, poolfee, price, hp):
         pin.pin[PIN_HASHEXPENSE] = f''
         return
 
-    fiat_pool_fee = poolfee * calcs.fiat(hv, price)
-    ret = rate * (eff / 6000 * 144) + (opex / 30) - fiat_pool_fee
+    fiat_pool_fee = poolfee * calcs.fiat(hp, price)
+    ret = rate * (eff / 6000) * EXPECTED_BLOCKS_PER_DAY - fiat_pool_fee
 
-    pin.pin[PIN_HASHEXPENSE] = f"{ret:,.2f}"
-
-
-
-
-
-
+    pin.pin[PIN_HASHEXPENSE] = f"$ {ret:,.5f}"
 
 
 
@@ -606,7 +633,7 @@ def update_numbers( throw_away=None ) -> None:
     update_satsperth()
     update_fiatperth()
     update_eff()
-    update_resell
+    update_resell()
     update_hashexpense()
 
 
