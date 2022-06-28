@@ -74,7 +74,7 @@ def get_stats_from_luxor() -> bool:
 
     pin.pin[PIN_HEIGHT] = 0 # luxor does not provide the height
     pin.pin[PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
-    pin.pin[PIN_NETWORKHASHRATE] = 0
+    #pin.pin[PIN_NETWORKHASHRATE] = 0
     #pin.pin[PIN_AVERAGEFEE] = 0
     #pin.pin[PIN_BOUGHTATPRICE] = 0
     #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")

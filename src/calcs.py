@@ -25,6 +25,11 @@ def blocks_until_halvening(block_height):
     """
     return ((block_height // SUBSIDY_HALVING_INTERVAL + 1) * SUBSIDY_HALVING_INTERVAL) - block_height
 
+def hash_price() -> float:
+    return 0.0
+
+def hash_value() -> float:
+    return 0.0
 
 def fiat(sats, bitcoin_price):
     """
@@ -37,6 +42,17 @@ def btc(fiat, bitcoin_price):
         Convert fiat into sats at given price of bitcoin
     """
     return int(ONE_HUNDRED_MILLION * (fiat / bitcoin_price))
+
+
+def calc_hashvalue(subsidy, fees, difficulty) -> float:
+    nh = get_hashrate_from_difficulty(difficulty)
+
+    return (subsidy + fees) / nh
+
+
+
+
+
 
 def get_difficulty(bits: int) -> float:
     """

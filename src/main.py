@@ -19,7 +19,7 @@ import config
 from data import get_price, get_stats_from_internet
 from node import useful_node, get_stats_from_node
 from popups import popup_get_price_from_user, popup_get_stats_from_user
-from webio import show_user_interface_elements
+from webio import show_user_interface_elements, update_numbers
 
 def download_bitcoin_network_data():
     """
@@ -49,6 +49,12 @@ def download_bitcoin_network_data():
             if not popup_get_stats_from_user():
                 output.toast("Unable to get bitcoin network status")
 
+##################################
+def enter_debug_values() -> None:
+    pin.pin[PIN_WATTAGE] = 3050
+    pin.pin[PIN_COST] = 5375
+    pin.pin[PIN_HASHRATE] = 90
+
 #################
 def cleanup():
     logging.info("The web page was closed - goodbye")
@@ -58,13 +64,15 @@ def cleanup():
 def main():
     session.set_env(title="bitcoin mining profit calculator")
 
-    t = threading.Thread(target=session.hold)
+    t = threading.Thread(group=None, target=session.hold)
     session.register_thread( t )
     t.start()
     session.defer_call(cleanup)
 
     show_user_interface_elements()
     download_bitcoin_network_data()
+    enter_debug_values()
+    update_numbers() # this is the callback function used to ensure all UI read_only fields are updated
 
     # TODO DEBUG ONLY
     if "--debug" in sys.argv:
