@@ -23,79 +23,44 @@ def show_projection():
         THIS FUNCTION TAKES THE VALUES FROM THE INPUT FIELDS AND RUNS THE PROJECTION...
         TODO - SANITIZE THE INPUTS!
     """
-
+    output.toast("calculating...", color='warn', duration=1)
     logging.info("running show_projection()")
 
-    try:
-        hashrate = float(pin.pin[PIN_HASHRATE])
-        wattage = int(pin.pin[PIN_WATTAGE])
-        capex = float(pin.pin[PIN_COST])
-        opex = float(pin.pin[PIN_OPEX])
-        poolfee = float(pin.pin[PIN_POOLFEE] / 100)
-        rate = float(pin.pin[PIN_KWH_RATE])
-    except TypeError as e:
-        logging.exception('')
-        output.toast("Something went wrong - Check all the input fields!")
-        return
+    months = get_entered_months()
+    height = get_entered_height()
+    avgfee = get_entered_fees()
+    hashrate = get_entered_hashrate()
+    wattage = get_entered_wattage()
+    price = get_entered_price()
+     # TODO figure out my strategy for this thang!!
+    price_when_bought = get_entered_bought_price()
 
-    #nh = float(pin.pin[PIN_NETWORKHASHRATE])
-    diff = float(pin.pin[PIN_NETWORKDIFFICULTY])
-
-    avgfee = float(pin.pin[PIN_AVERAGEFEE])
-
-    height = int(pin.pin[PIN_HEIGHT])
-    price = float(pin.pin[PIN_BTC_PRICE_NOW])
-
-    # TODO fix this... make it a function that is easier and neater and less prone to mistakes.
-    m = int(pin.pin[PIN_MONTHSTOPROJECT])
-    hg = float(pin.pin[PIN_HASHGROW] / 100)
-    #hg2 = float(pin.pin[PIN_HASHGROW2] / 100)
-    hg2=0
     pricegrow = float(pin.pin[PIN_PRICEGROW] / 100)
     pricegrow2 = float(pin.pin[PIN_PRICEGROW2] / 100)
-    pl = int(pin.pin[PIN_LAG])
+    pricelag = int(pin.pin[PIN_LAG])
+    
+    diff = get_entered_difficulty()
+    hashgrow = float(pin.pin[PIN_HASHGROW] / 100)
 
-    resale_upper = pin.pin[PIN_RESELL]
+    kWh_rate = get_entered_rate()
+    opex = get_entered_opex()
+    capex = get_entered_machine_cost()
+    resell = get_entered_resell_percent()
+    poolfee = get_entered_poolfee()
 
-
-    #TODO SANITIZE INPUT - do a better job
-    if pin.pin['wattage'] == None or pin.pin['wattage'] <= 0:
-        output.toast("invalid wattage - no miners added")
-        return
-    if pin.pin['hashrate'] == None or pin.pin['hashrate'] <= 0:
-        output.toast("invalid hashrate - no miners added")
-        return
-    if pin.pin[PIN_COST] == None or pin.pin[PIN_COST] <= 0:
-        output.toast("invalid cost - no miners added")
-        return
-    if None in [m, pricegrow, hg]:
-        output.toast("missing projection parameters...")
-        output.toast("can't leave input field blank", color='error')
+    if None in (months, height, avgfee, hashrate, wattage, price,
+                pricegrow, pricegrow2, pricelag, diff,
+                hashgrow, kWh_rate, opex, capex, resell, poolfee):
+        output.toast("Error - an input field was left blank (or is invalid)")
+        logging.error("None variable passed to calculate_projection()")
         return
 
-
-    # # we convert the fiat cost to satoshis using the provided bitcoin price at time of equipment purchase
-    # pin.pin[PIN_CAPEX] = btc( result['cost'], price=result['btcprice'])
-
-
-    # # NOW WE HAVE TO CHANGE THE PIN INPUTS PIN_CAPEX AND PIN_EFF
-    # pin.pin[PIN_CAPEX] = pin.pin['play_with_capex'] = round(result['cost'] / result['hashrate'], 2) #TODO warning... I'm rounding numbers
-    # pin.pin[PIN_EFF] = pin.pin['play_with_eff'] = round(result['wattage'] / result['hashrate'], 2)
-
-    # # TODO - this will cause a bug... don't set to DEFAULT_P below... have another way!  Unless we make sure this function is only called once... and the value isn't reset???  Hmmm...
-    # capexsatsperthpermonth = us.total_capex() / pin.pin[PIN_MONTHSTOPROJECT] / us.total_terahash()
-    # capex /= m
-
-    price_when_bought = pin.pin[PIN_BOUGHTATPRICE]
-
-    # PRINT EVERYTHING TO THE SCREEN...
     with output.use_scope('projection', clear=True):
         output.put_markdown( "# PROJECTION SUMMARIES:" )
 
-    output.toast("calculating...", color='warn', duration=1)
-    ## ACTUALLY DO THE CALCULATIONS
+
     res = calcs.calculate_projection(
-        months = m,
+        months = months,
         height = height,
         avgfee = avgfee,
         hashrate = hashrate,
@@ -103,24 +68,19 @@ def show_projection():
         price = price,
         pricegrow = pricegrow,
         pricegrow2 = pricegrow2,
-        pricelag = pl,
-        #networh_hashrate = nh,
+        pricelag = pricelag,
         network_difficulty = diff,
-        hashgrow = hg,
-        #hashgrow2 = hg2,
-        kWh_rate = rate,
+        hashgrow = hashgrow,
+        kWh_rate = kWh_rate,
         opex = opex,
         capex_in_sats = calcs.btc(capex, bitcoin_price=price_when_bought),
-        resale_upper = resale_upper,
+        resale = resell,
         poolfee = poolfee,
     )
-    output.toast("done.", color='success', duration=1)
-
-    table = calcs.make_table_string(res)
 
     config.analysis_number += 1
 
-    # SHOW GRAPH
+    table = calcs.make_table_string(res)
     with output.use_scope("result"):
         output.put_collapse(title=f"analysis #{config.analysis_number}", content=[
             output.put_html( calcs.pretty_graph(res) ),
@@ -132,6 +92,8 @@ def show_projection():
                 ]])
         ])
         ], position=output.OutputPosition.TOP, open=True)
+
+    output.toast("done.", color='success', duration=1)
 
 #######################
 def show_user_interface_elements():
@@ -268,6 +230,37 @@ def get_entered_fees() -> int:
         return None
 
     if ret < 0:
+        return None
+    return ret
+
+#################################
+def get_entered_months() -> int:
+    """
+        This returns the entered months to project
+        None is returned on error (eg. input is blank) or if number is less than 1
+    """
+    try:
+        ret =  int(pin.pin[PIN_MONTHSTOPROJECT])
+    except TypeError:
+        logging.debug('months to project - input field blank', exc_info=True)
+        return None
+
+    if ret < 1:
+        return None
+    return ret
+
+def get_entered_wattage() -> float:
+    """
+        This returns the entered machine wattage
+        None is returned on error (eg. input is blank)
+    """
+    try:
+        ret =  float(pin.pin[PIN_WATTAGE])
+    except TypeError:
+        logging.debug('input field blank', exc_info=True)
+        return None
+
+    if ret < 1:
         return None
     return ret
 

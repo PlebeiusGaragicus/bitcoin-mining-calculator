@@ -158,7 +158,7 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> fl
             try:
                 block_data = str(ur.urlopen(ur.Request(f'https://blockchain.info/rawblock/{latest_hash}')).read())
             except ur.HTTPError as e:
-                logging.exception('')
+                logging.exception('HTTPError')
                 return -1
 
             block_fee = int(block_data.split('"fee":')[1].split(',')[0])
@@ -174,8 +174,7 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> fl
                 pin.pin['feescroller'] = f"block: {bdx} --> fee: {block_fee:,}\n" + pin.pin["feescroller"]
             except TypeError as e:
                 # this error happens if the popup was closed
-                #logging.debug("", exc_info=True)
-                logging.exception("This error is expected if you push the 'stop early' button")
+                logging.debug("This error is expected if you push the 'stop early' button", exc_info=True)
                 return round(total_fee / (1 + bdx - block_height + nBlocks), 2)
             logging.debug(f"block: {bdx} -->  fee: {format(block_fee, ',').rjust(11)} satoshi")
 

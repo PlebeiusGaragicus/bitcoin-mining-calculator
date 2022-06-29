@@ -24,7 +24,7 @@ from webio import show_user_interface_elements, update_numbers
 def download_bitcoin_network_data():
     """
         This tries to get the latest bitcoin network data + price
-    """ 
+    """
 
     p = get_price()
 

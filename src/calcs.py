@@ -62,18 +62,7 @@ def hash_price() -> float:
 def get_difficulty(bits: int) -> float:
     """
         This converts the 'bits' field in a bitcoin block to the 'difficulty' number
-
-        Taken (AKA, shamelessly plagiarized) from bitcoin core:
-            https://github.com/bitcoin/bitcoin/blob/8f3ab9a1b12a967cd9827675e9fce112e51d42d8/src/rpc/blockchain.cpp#L75-L95
-        Also helpful:
-            https://en.bitcoin.it/wiki/Difficulty
-            https://stackoverflow.com/a/22161019
-            https://bitcoin.stackexchange.com/questions/30467/what-are-the-equations-to-convert-between-bits-and-difficulty
-            https://bitcointalk.org/index.php?topic=192886.0
-
-        ...or just use this shell script     ¯\_(ツ)_/¯
-        #!/bin/bash
-        echo "ibase=16;FFFF0000000000000000000000000000000000000000000000000000 / $1" | bc -l
+        reference: https://github.com/bitcoin/bitcoin/blob/8f3ab9a1b12a967cd9827675e9fce112e51d42d8/src/rpc/blockchain.cpp#L75-L95
     """
 
     shift = (bits >> 24) & 0xFF
@@ -96,26 +85,12 @@ def get_hashrate_from_difficulty( difficulty: float) -> float:
     """
     return (difficulty * 2 ** 32) / 600 / TERAHASH
 
-
 ##########################
 def calculate_projection(
-                        months,
-                        height,
-                        avgfee, 
-                        hashrate,
-                        wattage,
-                        price,
-                        pricegrow,
-                        pricegrow2, 
-                        pricelag,
-                        #networh_hashrate,
-                        network_difficulty,
-                        hashgrow,
-                        kWh_rate,
-                        opex,
-                        capex_in_sats,
-                        resale_upper,
-                        poolfee
+                        months, height, avgfee, hashrate, wattage,
+                        price, pricegrow, pricegrow2, pricelag,
+                        network_difficulty, hashgrow,
+                        kWh_rate, opex,capex_in_sats, resale, poolfee
                     ) -> dict:
     """
         This function taken in all variables of interest and projects bitcoin earnings and fiat cost of running bitcoin miners
@@ -126,7 +101,6 @@ def calculate_projection(
     res = {
         # THESE ARE THE INPUTS TO THE CALCULATION
         KEY_MONTHS_TO_PROJECT : months,
-        # TODO _ USE THIS FOR BACKWARDS MODEL TESTING
         KEY_START_HEIGHT : height,
         KEY_AVGFEE : avgfee,
         KEY_MY_HASHRATE : hashrate,
@@ -135,13 +109,10 @@ def calculate_projection(
         KEY_PRICE_GROWTH : pricegrow,
         KEY_PRICE_GROWTH2 : pricegrow2,
         KEY_PRICE_LAG : pricelag,
-        #KEY_START_NH : networh_hashrate,
         KEY_HASH_GROWTH : hashgrow,
-        #KEY_HASH_GROWTH2 : hashgrow2,
         KEY_MONTHLY_OPEX : opex,
         KEY_CAPEX_SATS : capex_in_sats, # sats
-        KEY_RESALE : resale_upper,
-        #KEY_RESALE_LOWER : resale_lower,
+        KEY_RESALE : resale,
         KEY_POOLFEE : poolfee, # whole number percent / need to divide by 100
         KEY_RATE_KWH : kWh_rate,
         # THE REST OF THESE BELOW ARE CALCULATED OFF OF THE ABOVE GIVEN VARIABLES
@@ -164,13 +135,19 @@ def calculate_projection(
         KEY_BREAKEVEN_NH : [], # at estimated price
     }
 
+    if None in (months,height, avgfee, hashrate, wattage, price,
+                pricegrow, pricegrow2, pricelag, network_difficulty,
+                hashgrow, kWh_rate, opex, capex_in_sats, resale, poolfee):
+        logging.error("None variable passed to calculate_projection()")
+        return
+
     networh_hashrate = get_hashrate_from_difficulty(network_difficulty)
 
     capexsats_per_months = capex_in_sats / months
     logging.debug(f"capex: {capex_in_sats} sats -> {capexsats_per_months} sats/month")
 
-    capex_in_sats *= 1 - (resale_upper / 100)
-    logging.debug(f"resell: {resale_upper}% -> {capex_in_sats} sats/month")
+    capex_in_sats *= 1 - (resale / 100)
+    logging.debug(f"resell: {resale}% -> {capex_in_sats} sats/month")
 
     capexsats_per_months = capex_in_sats / months
     logging.debug(f"capex: {capex_in_sats} sats -> {capexsats_per_months} sats/month")
@@ -227,19 +204,8 @@ def calculate_projection(
         sold_e = btc(_kwh * kWh_rate, bitcoin_price=price)
         sold_o = btc(opex, bitcoin_price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
 
-        #sold_c = resale_percent * capex / months #already in 
-        #sold_c = capex / months #already in btc terms
-
         # basically, just the decision/assumption-making/verifying helper variables
         breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (sats_earned - btc(capex_in_sats, bitcoin_price=price))
-
-        # duck fuck squeeze
-        # if sold_e + sold_o + sold_c > hashvalue:
-        #     hashvalue = 0
-        #     sold_e = 0
-        #     sold_o = 0
-        #     sold_c = 0
-        # log it!
 
         res[KEY_ESTIMATED_HEIGHT].append( height )
         res[KEY_ESTIMATED_NETWORK_HASHRATE].append( networh_hashrate )
@@ -257,8 +223,6 @@ def calculate_projection(
         # KEY_BREAKEVEN_PRICE_P20P : [],
         # KEY_BREAKEVEN_NH : [],
     return res
-
-
 
 #######################
 def pretty_graph(res):
@@ -363,7 +327,6 @@ def pretty_graph(res):
     logging.debug(html)
 
     return html
-
 
 ###################################
 def make_table_string(res) -> str:
