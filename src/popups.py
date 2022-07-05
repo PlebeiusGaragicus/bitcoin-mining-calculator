@@ -6,17 +6,22 @@ This module contains the functions for all the cool popups ;)
 """
 
 import threading
+import logging
+from pyparsing import col
 
 from pywebio import pin
 from pywebio import output
 
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+#from plotly.graph_objects import make_subplots
 import pandas as pd
 
 from constants import *
+from calcs import block_subsity
 from data import *
-from nodes import *
-
+import node
+import webio
 
 #########################################################################
 # shamelessly stolen from here and modified
@@ -63,18 +68,18 @@ def popup_get_price_from_user():
         This is used if we can't download the price from the internet
     """
     result = popup_input([
-        pin.put_input('price', label='bitcoin price', type='float', value=pin.pin[PIN_BTC_PRICE_NOW])
-        ], names=['price'], title="What is the current bitcoin price?")
+        pin.put_input('user_price', label='bitcoin price', type='float', value=pin.pin[PIN_BTC_PRICE_NOW])
+        ], names=['user_price'], title="What is the current bitcoin price?")
 
     # USER HIT CANCEL
     if result == None:
         return -1
 
-    if result['price'] == None or result['price'] <= 0:
+    if result['user_price'] == None or result['user_price'] <= 0:
         output.toast("invalid price")
         return -1
     else:
-        p = result['price']
+        p = result['user_price']
 
     return p
 
@@ -155,7 +160,7 @@ def popup_currencyconverter():
             logging.debug("", exc_info=True)
             return
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
-        pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
+        pin.pin["result"] = f"${amnt:,.2f} @ ${price:,.2f} = {r:,.2f} sats / {r / ONE_HUNDRED_MILLION:.2f} bitcoin\n" + pin.pin['result']
 
     def convert_to_fiat():
         try:
@@ -178,8 +183,8 @@ def popup_currencyconverter():
             output.put_column(content=[
                 pin.put_input("amount", type="float", label="Amount to convert"),
                 output.put_column(content=[
-                    output.put_button("sats -> dollars", onclick=convert_to_fiat),
-                    output.put_button("dollars -> sats", onclick=convert_to_sat)
+                    output.put_button("sats -> fiat", onclick=convert_to_fiat),
+                    output.put_button("fiat -> sats", onclick=convert_to_sat)
                     ])
                 ])
         ]),
@@ -188,18 +193,20 @@ def popup_currencyconverter():
 
 ##########################
 def popup_fee_analysis():
-    # TODO can we record the fact that we have a node.. or not.. instead of doing this all over again?  k thanks
+    """
+        This creates a popup that averages the last 144 blocks in order to average transaction fees
 
-    path = useful_node()
+        TODO check if we are using a pruned node and warn the user
+    """
 
-    if path != None:
-        f = node_avgblockfee(path)
+    if config.node_path != None:
+        f = node.average_block_fee(config.node_path)
     else:
         f = get_average_block_fee_from_internet()
 
     pin.pin[PIN_AVERAGEFEE] = f
     pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-
+    webio.update_numbers()
 
 ###########################
 def popup_price_history():
@@ -209,7 +216,10 @@ def popup_price_history():
 
     price_df = get_luxor_price_as_df()
 
-    #logging.debug(price_df)
+    if price_df == None:
+        output.toast("Error getting price data from Luxor", color='error')
+
+    logging.debug(price_df)
 
     fig = go.Figure(data=go.Ohlc(x=price_df['timestamp'],
                         open=price_df['open'],
@@ -267,7 +277,9 @@ def popup_difficulty_history():
 
 #################################
 def popup_breakeven_analysis():
-
+    """
+        This creates a popup with a break-even analysis tool for price, price/kWh and network hashrate
+    """
     def update_break_even( callback_throwaway ):
         """
             This call back is used for every onchange= 'pin' input field.

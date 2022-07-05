@@ -1,6 +1,6 @@
 import logging
 
-from luxor import LuxorAPI, LUXOR_ENDPOINT
+from btc_mining_calcs.luxor import LuxorAPI, LUXOR_ENDPOINT
 # keep it secret... keep it safe
 import apikey
 

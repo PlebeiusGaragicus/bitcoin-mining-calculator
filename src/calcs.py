@@ -12,47 +12,57 @@ from plotly.subplots import make_subplots
 
 from constants import *
 
-# https://github.com/bitcoin/bitcoin/blob/b71d37da2c8c8d2a9cef020731767a6929db54b4/src/validation.cpp#L1479-L1490
-def block_subsity( height ):
+####################################
+def block_subsity( height ) -> int:
     """
         This returns the coinbase reward in satoshi for a given block height
+
+        see: https://github.com/bitcoin/bitcoin/blob/b71d37da2c8c8d2a9cef020731767a6929db54b4/src/validation.cpp#L1479-L1490
     """
     return (50 * ONE_HUNDRED_MILLION) >> (height // SUBSIDY_HALVING_INTERVAL)
 
-def blocks_until_halvening(block_height):
+#################################################
+def blocks_until_halvening(block_height) -> int:
     """
         This tells you how many blocks until the next halvening
     """
     return ((block_height // SUBSIDY_HALVING_INTERVAL + 1) * SUBSIDY_HALVING_INTERVAL) - block_height
 
 
-def fiat(sats, price):
+########################################
+def fiat(sats, bitcoin_price) -> float:
     """
-        Convert sats into fiat at given price of bitcoin
+        Convert sats into fiat value at given price of bitcoin
     """
-    return sats * (price / ONE_HUNDRED_MILLION)
+    return sats * (bitcoin_price / ONE_HUNDRED_MILLION)
 
-def btc(fiat, price):
+#######################################
+def btc(fiat, bitcoin_price) -> float:
     """
         Convert fiat into sats at given price of bitcoin
     """
-    return int(ONE_HUNDRED_MILLION * (fiat / price))
+    return int(ONE_HUNDRED_MILLION * (fiat / bitcoin_price))
 
-def get_difficulty(bits: int):
+
+###################################################
+def hash_value(subsidy, fees, difficulty) -> float:
+    """
+        This will return the hash value
+    """
+    nh = get_hashrate_from_difficulty(difficulty)
+
+    return (subsidy + fees) / nh
+
+###########################
+def hash_price() -> float:
+    raise NotImplementedError
+    return 0.0
+
+########################################
+def get_difficulty(bits: int) -> float:
     """
         This converts the 'bits' field in a bitcoin block to the 'difficulty' number
-
-        Taken (AKA, shamelessly plagiarized) from bitcoin core:
-            https://github.com/bitcoin/bitcoin/blob/8f3ab9a1b12a967cd9827675e9fce112e51d42d8/src/rpc/blockchain.cpp#L75-L95
-        Also helpful:
-            https://en.bitcoin.it/wiki/Difficulty
-            https://stackoverflow.com/a/22161019
-            https://bitcoin.stackexchange.com/questions/30467/what-are-the-equations-to-convert-between-bits-and-difficulty
-            https://bitcointalk.org/index.php?topic=192886.0
-
-        ...or just use this shell script     ¯\_(ツ)_/¯
-        #!/bin/bash
-        echo "ibase=16;FFFF0000000000000000000000000000000000000000000000000000 / $1" | bc -l
+        reference: https://github.com/bitcoin/bitcoin/blob/8f3ab9a1b12a967cd9827675e9fce112e51d42d8/src/rpc/blockchain.cpp#L75-L95
     """
 
     shift = (bits >> 24) & 0xFF
@@ -68,43 +78,29 @@ def get_difficulty(bits: int):
 
     return diff
 
+###############################################################
 def get_hashrate_from_difficulty( difficulty: float) -> float:
     """
         Returns estimated network terahashes for a given network difficulty
-        # TODO wording
     """
     return (difficulty * 2 ** 32) / 600 / TERAHASH
 
-
 ##########################
 def calculate_projection(
-                        months,
-                        height,
-                        avgfee, 
-                        hashrate,
-                        wattage,
-                        price,
-                        pricegrow,
-                        pricegrow2, 
-                        pricelag,
-                        #networh_hashrate,
-                        network_difficulty,
-                        hashgrow,
-                        kWh_rate,
-                        opex,
-                        capex_in_sats,
-                        resale_upper,
-                        #resale_lower,
-                        poolfee
-                    ):
+                        months, height, avgfee, hashrate, wattage,
+                        price, pricegrow, pricegrow2, pricelag,
+                        network_difficulty, hashgrow,
+                        kWh_rate, opex,capex_in_sats, resale, poolfee
+                    ) -> dict:
     """
-        The meat and potatoes function.  Yummy.
+        This function taken in all variables of interest and projects bitcoin earnings and fiat cost of running bitcoin miners
+
+        This function returns a dict with the projection results.
     """
 
     res = {
         # THESE ARE THE INPUTS TO THE CALCULATION
         KEY_MONTHS_TO_PROJECT : months,
-        # TODO _ USE THIS FOR BACKWARDS MODEL TESTING
         KEY_START_HEIGHT : height,
         KEY_AVGFEE : avgfee,
         KEY_MY_HASHRATE : hashrate,
@@ -113,13 +109,10 @@ def calculate_projection(
         KEY_PRICE_GROWTH : pricegrow,
         KEY_PRICE_GROWTH2 : pricegrow2,
         KEY_PRICE_LAG : pricelag,
-        #KEY_START_NH : networh_hashrate,
         KEY_HASH_GROWTH : hashgrow,
-        #KEY_HASH_GROWTH2 : hashgrow2,
         KEY_MONTHLY_OPEX : opex,
         KEY_CAPEX_SATS : capex_in_sats, # sats
-        KEY_RESALE : resale_upper,
-        #KEY_RESALE_LOWER : resale_lower,
+        KEY_RESALE : resale,
         KEY_POOLFEE : poolfee, # whole number percent / need to divide by 100
         KEY_RATE_KWH : kWh_rate,
         # THE REST OF THESE BELOW ARE CALCULATED OFF OF THE ABOVE GIVEN VARIABLES
@@ -142,13 +135,19 @@ def calculate_projection(
         KEY_BREAKEVEN_NH : [], # at estimated price
     }
 
+    if None in (months,height, avgfee, hashrate, wattage, price,
+                pricegrow, pricegrow2, pricelag, network_difficulty,
+                hashgrow, kWh_rate, opex, capex_in_sats, resale, poolfee):
+        logging.error("None variable passed to calculate_projection()")
+        return
+
     networh_hashrate = get_hashrate_from_difficulty(network_difficulty)
 
     capexsats_per_months = capex_in_sats / months
     logging.debug(f"capex: {capex_in_sats} sats -> {capexsats_per_months} sats/month")
 
-    capex_in_sats *= 1 - (resale_upper / 100)
-    logging.debug(f"resell: {resale_upper}% -> {capex_in_sats} sats/month")
+    capex_in_sats *= 1 - (resale / 100)
+    logging.debug(f"resell: {resale}% -> {capex_in_sats} sats/month")
 
     capexsats_per_months = capex_in_sats / months
     logging.debug(f"capex: {capex_in_sats} sats -> {capexsats_per_months} sats/month")
@@ -202,27 +201,11 @@ def calculate_projection(
             price *= 1 + pricegrow # 1 + pricegrow / 30 # daily
             #logging.debug(f"price increased to {price} - using growth factor2: {pricegrow2}")
 
-        sold_e = btc(_kwh * kWh_rate, price=price)
-        sold_o = btc(opex, price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
-
-        #sold_c = resale_percent * capex / months #already in 
-        #sold_c = capex / months #already in btc terms
+        sold_e = btc(_kwh * kWh_rate, bitcoin_price=price)
+        sold_o = btc(opex, bitcoin_price=price) # we divide opex by my hashrate because everything else on this graph is reduced in this manner
 
         # basically, just the decision/assumption-making/verifying helper variables
-        breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (sats_earned - btc(capex_in_sats, price=price))
-
-        #if not crossed and 
-        # TODO
-        # if no profit
-            # unplug
-        # if duck, fuck, squeeze... log it!
-
-        # duck fuck squeeze
-        # if sold_e + sold_o + sold_c > hashvalue:
-        #     hashvalue = 0
-        #     sold_e = 0
-        #     sold_o = 0
-        #     sold_c = 0
+        breakeven_price = ((ONE_HUNDRED_MILLION * opex) + (ONE_HUNDRED_MILLION * _kwh * kWh_rate)) / (sats_earned - btc(capex_in_sats, bitcoin_price=price))
 
         res[KEY_ESTIMATED_HEIGHT].append( height )
         res[KEY_ESTIMATED_NETWORK_HASHRATE].append( networh_hashrate )
@@ -239,20 +222,12 @@ def calculate_projection(
         res[KEY_BREAKEVEN_PRICE].append( breakeven_price )
         # KEY_BREAKEVEN_PRICE_P20P : [],
         # KEY_BREAKEVEN_NH : [],
-
-
     return res
 
-
-
-
-
-
-
-##########################
+#######################
 def pretty_graph(res):
     """
-        this takes the projection results and returns a pretty graph
+        this takes the projection results (returned by calculate_projection() and returns a pretty graph
     """
     #fig = go.Figure()
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -340,27 +315,26 @@ def pretty_graph(res):
     #     ))
 
     # Set x-axis title
-    fig.update_xaxes(title_text="xaxis title")
+    fig.update_xaxes(title_text="time (months)")
 
     # Set y-axes titles
     fig.update_yaxes(title_text="<b>satoshi</b>", secondary_y=False)
     fig.update_yaxes(title_text="<b>Bitcoin price</b>", secondary_y=True)
 
     fig.update_layout(barmode='stack')
-    return fig.to_html(include_plotlyjs="require", full_html=False)
+    html = fig.to_html(include_plotlyjs="require", full_html=False)
 
+    #logging.debug(html)
 
+    return html
 
-
-##########################
+###################################
 def make_table_string(res) -> str:
-# 1       2              3                             4
     str_table = \
-    """
-    | month | block height | network hashrate (exahash) | btc price |
-    | :--- | ---: | ---: | ---: |
-    """
-    # 1         2      3      4   
+"""| month | block height | network exahash | btc price |
+| :--- | ---: | ---: | ---: |
+"""
+    # 1         2      3      4
 
                             #    1    2    3    4 
     str_table_row_format = """| %s | %s | %s | %s |"""
@@ -370,7 +344,7 @@ def make_table_string(res) -> str:
             f"{mdx + 1}",
             f"{res[KEY_ESTIMATED_HEIGHT][mdx]:,}",
             f"{res[KEY_ESTIMATED_NETWORK_HASHRATE][mdx]/MEGAHASH:,.2f}",
-            f"{res[KEY_ESTIMATED_PRICE][mdx]:,.2f}",
+            f"{res[KEY_ESTIMATED_PRICE][mdx]:,.2f}"
         )
         str_table += '\n'
 
@@ -390,4 +364,3 @@ def make_table_string(res) -> str:
     #     story += "You've decided to sell ALL the bitcoin you withdrawal and roll in stead money coming your way."
 
     return str_table
-

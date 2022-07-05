@@ -4,3 +4,7 @@ __pycache__/
 
 apikey*
 *.log
+
+network_history.csv
+
+test.py

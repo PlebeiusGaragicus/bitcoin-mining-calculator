@@ -1,12 +1,10 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
 """
 This module contains the constants used in this project
 """
 
 
-######################################################################
 
 CLI_USAGE_HELP = """
 ./start_calculator.sh
@@ -21,9 +19,9 @@ CLI_USAGE_HELP = """
 
 MAIN_TEXT = """# Open-Source Bitcoin Mining Profitability Calculator
 
-__The goal of this project is to inspire__ people to learn more about bitcoin's built-in incentive structure - mining.
+__The goal of this project is to inspire__ people to learn about bitcoin's built-in incentive structure - mining.
 
-__The purpose of this tool is to__ help bitcoin miners make the best business decisions - how much to pay for equipment and what operating environment is needed to be profitable.
+__The purpose of this tool is to__ help bitcoin miners make sound business decisions - namely, how much to pay for equipment and what operating environment is needed to be profitable.
 """
 
 HASH     = 1                            # 10**0
@@ -42,30 +40,29 @@ EXPECTED_BLOCKS_PER_DAY = 144           # 24 * 6
 
 # https://github.com/bitcoin/bitcoin/blob/0.21/src/chainparams.cpp#L69
 SUBSIDY_HALVING_INTERVAL = 210_000
-EPOCH_INTERVAL = 2016
+
+# https://github.com/bitcoin/bitcoin/blob/8e7eeb5971444c0c93e9a89bbdcc3a51a19e09e9/src/chainparams.cpp#L84
+POW_TARGET_SPACING = 2016 # AKA BLOCKS PER 'EPOCH'
 
 ### DEFAULT NUMBERS FOR THE USER INPUT FIELDS
 DEFAULT_POOL_FEE = 0 # per-cent (2 == 2%; 0.1 == 0.1%)
-DEFAUL_KPKWH = 0.075 # dollars per kWh
-DEFAULT_OPEX = 15 # dollars
+DEFAUL_KPKWH = 0.075 # fiats per kWh
+DEFAULT_OPEX = 15 # fiats
 DEFAULT_MONTHSTOPROJECT = 36
-#DEFAULT_RESELL_HIGH = 75
 DEFAULT_RESELL = 75
-DEFAULT_RESELL_LOW = 50
 DEFAULT_PRICEGROW = 2
 DEFAULT_PRICEGROW2 = 18
 DEFAULT_LAG = 3
-DEFAULT_HASHGROW = 3
+DEFAULT_HASHGROW = 1.2
 DEFAULT_HASHGROW2 = -2
-#DEFAULT_THRESHOLD = 1000000
 
 # THESE ARE THE NAMES OF THE 'PIN' INPUT FIELDS
-# MINER DETAIL INPUT FIELDS
 PIN_COST = 'cost'
 PIN_WATTAGE = 'wattage'
 PIN_HASHRATE = 'hashrate'
 PIN_BOUGHTATPRICE = 'boughtatprice'
-# bitcoin price
+PIN_WATTDOLLAR = 'wattdollar'
+
 PIN_BTC_PRICE_NOW = 'price'
 PIN_PRICEGROW = 'pricegrow'
 PIN_PRICEGROW_SLIDER = 'pricegrow_slider'
@@ -78,11 +75,15 @@ PIN_COST_SLIDER = 'cost_slider'
 PIN_EFF = 'eff'
 PIN_EFF_SLIDER = 'eff_slider'
 PIN_SAT_PER_TH = 'satsperth'
+PIN_FIAT_PER_TH = 'fiatperth'
 # bitcoina network state
 PIN_HEIGHT = 'height'
+PIN_SUBSIDY = 'subsidy'
 PIN_AVERAGEFEE = 'avgfee'
-PIN_NETWORKHASHRATE = 'nh'
 PIN_NETWORKDIFFICULTY = 'diff'
+PIN_NETWORKHASHRATE = 'nh'
+PIN_HASHVALUE = 'hashvalue'
+PIN_HASHPRICE = 'hashprice'
 PIN_HASHGROW = 'hashgrow'
 PIN_HASHGROW_SLIDER = 'hashgrow_slider'
 PIN_HASHGROW2 = 'hashgrow2'
@@ -90,13 +91,11 @@ PIN_HASHGROW2 = 'hashgrow2'
 PIN_KWH_RATE = 'costkwh'
 PIN_POOLFEE = 'poolfee'
 PIN_OPEX = 'opex'
+PIN_HASHEXPENSE = 'hashexpense'
 PIN_MONTHSTOPROJECT = 'months'
 PIN_NEVERSELL = 'neversellmachine'
-#PIN_RESELL_UPPER ='resellupper'
 PIN_RESELL ='resell'
-#PIN_RESELL_LOWER = 'reselllower'
-PIN_UPPER_READONLY = 'upper_resale'
-PIN_LOWER_READONLY = 'lower_resale'
+PIN_RESELL_READONLY = 'resale_dollars'
 
 # This is the option 'list' for the PIN_NEVERSELL checkbox
 # Change this to change the text displayed
