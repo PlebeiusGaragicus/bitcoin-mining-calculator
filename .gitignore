@@ -6,3 +6,5 @@ apikey*
 *.log
 
 network_history.csv
+
+test.py

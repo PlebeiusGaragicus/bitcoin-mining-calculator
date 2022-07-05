@@ -7,6 +7,7 @@ This module contains the functions for all the cool popups ;)
 
 import threading
 import logging
+from pyparsing import col
 
 from pywebio import pin
 from pywebio import output
@@ -19,7 +20,8 @@ import pandas as pd
 from constants import *
 from calcs import block_subsity
 from data import *
-from node import *
+import node
+import webio
 
 #########################################################################
 # shamelessly stolen from here and modified
@@ -198,13 +200,13 @@ def popup_fee_analysis():
     """
 
     if config.node_path != None:
-        f = node_avgblockfee(config.node_path)
+        f = node.average_block_fee(config.node_path)
     else:
         f = get_average_block_fee_from_internet()
 
     pin.pin[PIN_AVERAGEFEE] = f
     pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-
+    webio.update_numbers()
 
 ###########################
 def popup_price_history():
@@ -213,6 +215,9 @@ def popup_price_history():
     """
 
     price_df = get_luxor_price_as_df()
+
+    if price_df == None:
+        output.toast("Error getting price data from Luxor", color='error')
 
     logging.debug(price_df)
 

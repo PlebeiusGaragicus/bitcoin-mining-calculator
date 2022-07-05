@@ -5,8 +5,9 @@
 This module gets bitcoin network data from the internets if you don't have a bitcoin archive node.
 """
 
+import requests
+import datetime
 import logging
-
 import json
 import urllib.request as ur
 
@@ -31,6 +32,39 @@ from calcs import get_hashrate_from_difficulty
 
 
 from constants import *
+import node
+import popups
+
+def download_bitcoin_network_data():
+    """
+        This tries to get the latest bitcoin network data + price
+    """
+
+    p = get_price()
+
+    if p == -1:
+        logging.error("Unable to get current bitcoin price")
+        p = popups.popup_get_price_from_user()
+
+        logging.info(f"Using user-supplied Bitcoin price: ${p:,.2f}")
+    else:
+        logging.info(f"Bitcoin price: ${p:,.2f}")
+
+    pin.pin[PIN_BTC_PRICE_NOW] = pin.pin[PIN_BOUGHTATPRICE] = p
+
+    load_success = False
+    config.node_path = node.useful_node()
+    if config.node_path != None:
+        load_success = node.get_stats_from_node()
+
+    if not load_success:
+        #if not get_stats_from_luxor():
+        if not get_stats_from_internet():
+            if not popups.popup_get_stats_from_user():
+                output.toast("Unable to get bitcoin network status")
+
+    if config.node_path == None:
+        output.put_info("No instance of local bitcoin node found or node is not fully synchronized - some functions limited.", closable=True, position=output.OutputPosition.TOP)
 
 ########################################
 # https://github.com/LuxorLabs/hashrateindex-api-python-client
@@ -96,7 +130,10 @@ def get_luxor_price_as_df():
 
         price = lux.get_ohlc_prices("ALL")['data']['getChartBySlug']['data']
         pdf = pd.DataFrame(price)
-    except Exception as e:
+
+        pdf.to_csv('luxor_price_data_all.csv', )
+        pdf.to_csv()
+    except Exception:
         logging.debug("", exc_info=True)
         return None
 
@@ -124,6 +161,8 @@ def get_stats_from_internet() -> bool:
         output.toast("Could not download network status.", color='error', duration=4)
         return False
 
+    config.height = h
+    config.difficulty = diff
     # pin.pin[PIN_BTC_PRICE_NOW] = p
     # pin.pin[PIN_BOUGHTATPRICE] = p
     pin.pin[PIN_HEIGHT] = h
@@ -184,6 +223,16 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> fl
     logging.debug(f"Average fee per block in last {nBlocks} blocks: {total_fee:,.0f}")
     return round(total_fee, 2)
 
+#################################
+def get_block_time(height: int) -> datetime:
+    if config.node_path != None:
+        # use the node, Luke!
+        pass
+    else:
+        raise NotImplementedError
+
+    return 0
+
 ############################
 def get_price() -> float:
     """
@@ -192,15 +241,17 @@ def get_price() -> float:
     """
     logging.debug("Getting price of bitcoin...")
 
-    if config.apikey != None:
-        p = query_bitcoinprice_luxor()
-    else:
-        p = query_bitcoinprice_coinbase()
+    #if config.apikey != None:
+    #    p = query_bitcoinprice_luxor()
+    #else:
+    p = query_bitcoinprice_coinbase()
 
     if p == -1 or p == None:
         logging.warn("Unable to get the price of bitcoin")
         output.toast("Unable to get the price of bitcoin", color='error')
         #p = query_bitcoinprice_coinbase()
+    
+    config.price = round(p, 2)
 
     return round(p, 2)
 
@@ -247,3 +298,44 @@ def query_bitcoinprice_coinbase() -> float:
         return -1
 
     return price
+
+
+
+
+
+
+
+# FOR HELP WITH UNIX TIME
+# https://www.unixtimestamp.com/index.php
+
+def coinbase_fetch_price_history(start_timestamp: int, end_timestamp: int) -> pd.DataFrame:
+    """
+        refer to: https://docs.cloud.coinbase.com/exchange/reference/exchangerestapi_getproductcandles
+        code example taken from: https://www.cryptodatadownload.com/blog/posts/Use-Python-to-Download-Coinbase-Price-Data/
+    """
+
+    logging.debug(f"getting coinbase price history {start_timestamp=} {end_timestamp=}")
+    SYMBOL = 'BTC-USD'
+    COINBASE_URL = f'https://api.pro.coinbase.com/products/{SYMBOL}/candles?granularity=86400&start={start_timestamp}&end={end_timestamp}'
+    response = requests.get(COINBASE_URL)
+
+    logging.debug(f"{response.status_code=}")
+    if response.status_code == 200:
+        data = pd.DataFrame(json.loads(response.text), columns=['unix', 'low', 'high', 'open', 'close', 'volume'])
+        #data = pd.DataFrame(json.loads(response.text), columns=['unix', 'close'])
+        #data = pd.DataFrame(json.loads(response.text))
+        data['date'] = pd.to_datetime(data['unix'], unit='s')  # convert to a readable date
+        #data['unix'] = pd.to_datetime(data['unix'], unit='s')  # convert to a readable date
+
+        # if data is None:
+        #     logging.error("Did not return any data from Coinbase for this symbol")
+        #     return None
+        # else:
+        #     data.to_csv(f'Coinbase_price_data.csv', index=False)
+    else:
+        logging.error("Did not receieve OK response from Coinbase API")
+        return None
+    
+    logging.debug(f"returning: {data=}")
+
+    return data

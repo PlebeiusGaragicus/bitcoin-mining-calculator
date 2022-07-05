@@ -6,16 +6,32 @@ This module contains the callbacks to the pywebio fields and
 a lot of the code that runs the pywebio user interface
 """
 
+from __future__ import print_function
+import datetime
 import logging
-from multiprocessing import pool
 
 from pywebio import pin
 from pywebio import output
 
 import config
 from constants import *
+import data
+import node
 import calcs
 import popups
+
+##################################
+def enter_debug_values() -> None:
+    pin.pin[PIN_WATTAGE] = 3050
+    pin.pin[PIN_COST] = 5375
+    pin.pin[PIN_HASHRATE] = 90
+    pin.pin[PIN_BOUGHTATPRICE] = 29500
+
+################
+def refresh():
+    data.download_bitcoin_network_data()
+    enter_debug_values()
+    update_numbers() # this is the callback function used to ensure all UI read_only fields are updated
 
 #######################
 def show_projection():
@@ -104,7 +120,8 @@ def show_user_interface_elements():
         output.put_button("break-even analysis", onclick=popups.popup_breakeven_analysis, color='info'),
         output.put_button("block fee analysis", onclick=popups.popup_fee_analysis),
         output.put_button("price history analysis", onclick=popups.popup_price_history),
-        output.put_button("hashrate history analysis", onclick=popups.popup_difficulty_history)
+        output.put_button("hashrate history analysis", onclick=popups.popup_difficulty_history),
+        output.put_button("refresh data", onclick=refresh)
     ])
 
     ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE
@@ -410,11 +427,73 @@ def get_entered_opex() -> float:
 
 
 
+############################
+def update_price() -> None:
+    """
+        This is called when the user enters an 'old' block height and we run a historical projection
 
+        This function essentially takes the entered height, queries coinbase for the price, and updates the PIN_PRICE field
+    """
+    # this feature is only available when running a node
+    if config.node_path == None:
+        return
 
+    h = get_entered_height()
 
+    if h == None:
+        #pin.pin_update(PIN_BTC_PRICE_NOW, value='') #nah, just leave it...
+        return
 
+    if h > config.height:
+        #output.toast("this is the future... you can't do that")
+        #logging.debug("you entered a block height that'")
+        return
 
+    if config.pruned and h < config.pruned_height:
+        logging.debug("This node is pruned and that block is not in memory...")
+        return
+
+    # if we are using an 'old' height -> find the price of bitcoin on that day
+    if h < config.height:
+        unix = node.get_block_unix_time(h)
+        if unix == None: #pruned node.. or, we just don't have the data for that height
+            return
+
+        p = data.coinbase_fetch_price_history(unix, unix+86400)
+        try:
+            price = (p['open'][0] + p['close'][0]) / 2
+            price = round(price, 2)
+        except IndexError:
+            output.toast(f"unable to load the price for block height {h}")
+            pin.pin_update(PIN_BTC_PRICE_NOW, value='')
+            return
+
+    pin.pin_update(PIN_BTC_PRICE_NOW, value=price) #nah, just leave it...
+
+################################
+def update_timestamp() -> None:
+    # this feature only works if you have a node
+    if config.node_path == None:
+        return
+
+    h = get_entered_height()
+
+    if h == None:
+        pin.pin_update(PIN_HEIGHT, help_text='')
+        return
+
+    try:
+        t = node.get_block_unix_time(h)
+        t = datetime.datetime.fromtimestamp(t).isoformat(sep=' ', timespec='seconds')
+
+    except Exception:
+        #logging.exception('')
+        logging.debug('', exc_info=True)
+        output.toast("unable to get block time - are you running a pruned node?")
+        pin.pin_update(PIN_HEIGHT, help_text='')
+        return
+
+    pin.pin_update(PIN_HEIGHT, help_text=t)
 
 ##############################
 def update_subsity() -> None:
@@ -597,7 +676,7 @@ def update_hashexpense() -> None:
     price = get_entered_price()
 
     try:
-        hv = float(str(pin.pin[PIN_HASHVALUE]).replace(' sats', ''))
+        hv = float(str(pin.pin[PIN_HASHVALUE]).replace(' sats', '').replace(',', ''))
     except ValueError:
         logging.debug('', exc_info=True) # this way it only shows up in debug mode
         pin.pin[PIN_HASHEXPENSE] = ''
@@ -623,6 +702,15 @@ def update_numbers( throw_away=None ) -> None:
             All input fields are always up-to-date with proper numbers
     """
 
+    h = get_entered_height()
+
+    # only try to update the price if we're going at least one day back
+    if h < (config.height - 144):
+        #output.toast("ok, we're running a historial calculation!!!")
+        output.toast("Using historical data") #, position=output.OutputPosition.TOP, scope='main')
+        update_price()
+
+    update_timestamp()
     update_subsity()
     update_hashrate()
     update_hashvalue()
@@ -633,87 +721,3 @@ def update_numbers( throw_away=None ) -> None:
     update_eff()
     update_resell()
     update_hashexpense()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# pin.pin[PIN_SAT_PER_TH] = f"{round(btc(usd_cost_of_miner, bitcoin_price=newprice) / hr, 1):,.2f}"
-# pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (usd_cost_of_miner/newprice):,.1f} sats")
-# #pin.pin[PIN_SAT_PER_TH] = round(btc(usd_cost_of_miner, price=newprice) / hr, 1)
-
-# if cost == None or cost < 1:
-#     pin.pin[PIN_SAT_PER_TH] = ''
-#     pin.pin_update(name=PIN_COST, help_text='')
-#     pin.pin_update(PIN_RESELL_READONLY, value='')
-#     return
-
-# hr = float(pin.pin[PIN_HASHRATE])
-# dollarsperth = cost / hr
-# pin.pin_update(name=PIN_SAT_PER_TH, help_text=f"${dollarsperth:.1f} / TH")
-
-
-
-# btcuponpurchase = float(pin.pin[PIN_BOUGHTATPRICE])
-
-# pin.pin_update(name=PIN_COST, help_text=f"{ONE_HUNDRED_MILLION * (cost/btcuponpurchase):,.1f} sats")
-# pin.pin[PIN_SAT_PER_TH] = f"{round(btc(cost, bitcoin_price=btcuponpurchase) / hr, 1):,.2f}"
-
-
-
-
-
-
-# ####################################
-# def upperresale_waschanged(v: int):
-#     try:
-#         v = pin.pin[PIN_COST] * (pin.pin[PIN_RESELL] / 100)
-#         pin.pin_update(PIN_RESELL_READONLY, value=v)
-#     except Exception as e:
-#         logging.debug("", exc_info=True)
-#         return
-
-# #######################################
-# def avgfee_waschanged( newval: float):
-#     if newval == None:
-#         n = ''
-#     else:
-#         n = newval / ONE_HUNDRED_MILLION
-#     pin.pin_update(name=PIN_AVERAGEFEE, help_text=f'{n:.2f} bitcoin')
-
-
-
-
-
-
-# if not usd_cost_of_miner == None:
-#     dollarsperth = usd_cost_of_miner / hashrate
-#     pin.pin_update(PIN_SAT_PER_TH, help_text=f"${dollarsperth:,.2f} / TH")
-
-#     boughtatprice = pin.pin[PIN_BOUGHTATPRICE]
-#     if not boughtatprice == None:
-#         pin.pin[PIN_SAT_PER_TH] = round(ONE_HUNDRED_MILLION * (usd_cost_of_miner/boughtatprice) / hashrate, 2)
-
-# if newprice == None or newprice < 1:
-#     pin.pin[PIN_SAT_PER_TH] = ''
-#     return
-
-# try:
-#     usd_cost_of_miner = float(pin.pin[PIN_COST])
-#     hr = float(pin.pin[PIN_HASHRATE])
-# except Exception as e:
-#     #logging.debug("", exc_info=True)
-#     pin.pin[PIN_SAT_PER_TH] = ''
-#     return
-# upperresale_waschanged( int(pin.pin[PIN_RESELL]) )
