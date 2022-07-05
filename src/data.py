@@ -223,16 +223,6 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> fl
     logging.debug(f"Average fee per block in last {nBlocks} blocks: {total_fee:,.0f}")
     return round(total_fee, 2)
 
-#################################
-def get_block_time(height: int) -> datetime:
-    if config.node_path != None:
-        # use the node, Luke!
-        pass
-    else:
-        raise NotImplementedError
-
-    return 0
-
 ############################
 def get_price() -> float:
     """
@@ -274,7 +264,8 @@ def query_bitcoinprice_luxor() -> float:
         # so let's just take the first and last price and average them, shall we?
         avg = (price[1]['open'] + price[-1]['open']) / 2
     except Exception as e:
-        logging.debug("", exc_info=True)
+        logging.debug(f"__func__ exception", exc_info=True)
+        # TODO return None instead on error
         return -1
 
     return avg
@@ -294,12 +285,11 @@ def query_bitcoinprice_coinbase() -> float:
         data = json.loads(response) # returns dict
         price = float( data['data']['amount'] )
     except Exception as e:
-        logging.debug("", exc_info=True)
+        logging.debug(f"__func__ exception", exc_info=True)
+        # TODO return None instead on error
         return -1
 
     return price
-
-
 
 
 
