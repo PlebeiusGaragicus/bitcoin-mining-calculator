@@ -28,7 +28,10 @@ def enter_debug_values() -> None:
     pin.pin[PIN_BOUGHTATPRICE] = 29500
 
 ################
-def refresh():
+def refresh() -> None:
+    """
+        This function is called (1) at startup and (2) when the "refresh data" button is pushed
+    """
     data.download_bitcoin_network_data()
     enter_debug_values()
     update_numbers() # this is the callback function used to ensure all UI read_only fields are updated
@@ -138,7 +141,7 @@ def show_user_interface_elements():
         pin.put_input(name=PIN_HASHPRICE, type='text', label="hash price", value=0, readonly=True, help_text='hash value denominated in fiat at today\'s price')
         ]])
     pin.pin_on_change(name=PIN_BTC_PRICE_NOW, onchange=update_numbers)
-    pin.pin_on_change(name=PIN_HEIGHT, onchange=update_numbers)
+    pin.pin_on_change(name=PIN_HEIGHT, onchange=update_height)
     pin.pin_on_change(name=PIN_AVERAGEFEE, onchange=update_numbers)
     pin.pin_on_change(name=PIN_NETWORKDIFFICULTY, onchange=update_numbers)
     
@@ -434,39 +437,40 @@ def update_price() -> None:
 
         This function essentially takes the entered height, queries coinbase for the price, and updates the PIN_PRICE field
     """
-    # this feature is only available when running a node
+    # this feature is only available when running a node that is NOT pruned
+    #if config.node_path == None or config.pruned:
     if config.node_path == None:
         return
 
     h = get_entered_height()
-
     if h == None:
-        #pin.pin_update(PIN_BTC_PRICE_NOW, value='') #nah, just leave it...
         return
 
+    # a height in the future
     if h > config.height:
-        #output.toast("this is the future... you can't do that")
-        #logging.debug("you entered a block height that'")
         return
 
+    # on second thought... just say no to pruned nodes, kids.
     if config.pruned and h < config.pruned_height:
         logging.debug("This node is pruned and that block is not in memory...")
         return
 
-    # if we are using an 'old' height -> find the price of bitcoin on that day
-    if h < config.height:
-        unix = node.get_block_unix_time(h)
-        if unix == None: #pruned node.. or, we just don't have the data for that height
-            return
+    logging.debug(f"update_price {h=}")
 
-        p = data.coinbase_fetch_price_history(unix, unix+86400)
-        try:
-            price = (p['open'][0] + p['close'][0]) / 2
-            price = round(price, 2)
-        except IndexError:
-            output.toast(f"unable to load the price for block height {h}")
-            pin.pin_update(PIN_BTC_PRICE_NOW, value='')
-            return
+    unix = node.get_block_unix_time(h)
+    if unix == None: #pruned node.. or, we just don't have the data for that height
+        return
+
+    p = data.coinbase_fetch_price_history(unix, unix+86400)
+    try:
+        price = (p['open'][0] + p['close'][0]) / 2
+        price = round(price, 2)
+    except IndexError:
+        output.toast(f"unable to load the price for block height {h}")
+        pin.pin_update(PIN_BTC_PRICE_NOW, value='')
+        return
+    
+    logging.debug(f"we got a price of {price}")
 
     pin.pin_update(PIN_BTC_PRICE_NOW, value=price) #nah, just leave it...
 
@@ -494,6 +498,31 @@ def update_timestamp() -> None:
         return
 
     pin.pin_update(PIN_HEIGHT, help_text=t)
+
+#################################
+def update_difficulty() -> None:
+    # this feature only works if you have a node
+    if config.node_path == None:
+        return
+
+    h = get_entered_height()
+
+    if h == None:
+        return
+
+    try:
+        diff = node.getdifficulty(h)
+
+        if diff == None:
+            return
+        
+        pin.pin_update(PIN_NETWORKDIFFICULTY, value=diff)
+
+    except Exception:
+        #logging.exception('')
+        logging.debug('', exc_info=True)
+        output.toast("unable to get block difficulty - are you running a pruned node?")
+        return
 
 ##############################
 def update_subsity() -> None:
@@ -691,8 +720,20 @@ def update_hashexpense() -> None:
 
     pin.pin[PIN_HASHEXPENSE] = f"$ {ret:,.5f}"
 
+#####################################
+def update_height( height ) -> None:
+    h = get_entered_height()
 
+    if h == None:
+        return
 
+    # only try to update the price if we're going at least one day back
+    if h < (config.height - 144):
+        #output.toast("ok, we're running a historial calculation!!!")
+        output.toast("Using historical data") #, position=output.OutputPosition.TOP, scope='main')
+        update_price()
+    
+    update_numbers()
 
 ###############################################
 def update_numbers( throw_away=None ) -> None:
@@ -702,15 +743,8 @@ def update_numbers( throw_away=None ) -> None:
             All input fields are always up-to-date with proper numbers
     """
 
-    h = get_entered_height()
-
-    # only try to update the price if we're going at least one day back
-    if h < (config.height - 144):
-        #output.toast("ok, we're running a historial calculation!!!")
-        output.toast("Using historical data") #, position=output.OutputPosition.TOP, scope='main')
-        update_price()
-
     update_timestamp()
+    update_difficulty()
     update_subsity()
     update_hashrate()
     update_hashvalue()

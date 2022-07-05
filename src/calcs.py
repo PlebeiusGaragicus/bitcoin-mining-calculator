@@ -324,7 +324,7 @@ def pretty_graph(res):
     fig.update_layout(barmode='stack')
     html = fig.to_html(include_plotlyjs="require", full_html=False)
 
-    logging.debug(html)
+    #logging.debug(html)
 
     return html
 

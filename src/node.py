@@ -132,7 +132,7 @@ def get_block_unix_time(height) -> int:
     return ret
 
 ##############################################
-def getblockhash(height) -> int:
+def getblockhash(height) -> str:
     """
         basically just runs the 'getblockhash' command
         https://developer.bitcoin.org/reference/rpc/getblockhash.html
@@ -140,8 +140,12 @@ def getblockhash(height) -> int:
     if config.node_path == None:
         return None
 
+    logging.debug(f"getblockhash({height})")
+
     ret = os.popen(f"{config.node_path} getblockhash {height}").read()
     #TODO sanitize ret?  hmmmmmmmmmmm
+    
+    logging.debug(f"returning {ret}")
     return ret
 
 
@@ -161,7 +165,7 @@ def getnetworkhashps(nblocks=120, height=-1) -> float:
     return float( nh.split('\n')[0] ) / TERAHASH
 
 ####################################################################
-def getdifficulty() -> float:
+def getdifficulty(height=None) -> float:
     """
         basically just runs the 'getdifficulty' command
         https://developer.bitcoin.org/reference/rpc/getdifficulty.html
@@ -169,10 +173,31 @@ def getdifficulty() -> float:
     if config.node_path == None:
         return None
 
-    diff = os.popen(f"{config.node_path} getdifficulty").read()
+    logging.debug(f"getdifficulty({height})")
 
-    #TODO sanitize?
-    return float( diff.split('\n')[0] )
+    if height == None:
+        diff = os.popen(f"{config.node_path} getdifficulty").read()
+        diff = float( diff.split('\n')[0] )
+        logging.debug(f"returning {diff}")
+        return diff
+
+    if height > config.height or height < 0:
+        return None
+
+    hash = getblockhash(height)
+    if hash == None:
+        return None
+
+    diff = os.popen(f"{config.node_path} getblockheader {hash}").read()
+
+    try:
+        diff = float(json.loads(diff)["difficulty"])
+        logging.debug(f"returning {diff}")
+        return diff
+    except json.decoder.JSONDecodeError:
+        # this will fail if the node is unable to return the block time (eg. pruned node)
+        logging.debug("json decode error - are you running a pruned node?")
+        return None
 
 
 ###########################################################################

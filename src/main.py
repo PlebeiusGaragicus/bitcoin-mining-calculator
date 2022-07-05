@@ -1,39 +1,32 @@
 # Distributed under the MIT software license, see the accompanying
 # file LICENSE or http://www.opensource.org/licenses/mit-license.php.
-
 """
 This is the main module that you run
 """
 
-import sys, getopt
+import sys
+import getopt
 import threading
 import logging
 
-from pywebio import pin
-from pywebio import output
-from pywebio import session
-from pywebio import start_server
+import pywebio
 
 from constants import *
 import config
-from data import get_price, get_stats_from_internet
-from node import useful_node, get_stats_from_node
-from popups import popup_get_price_from_user, popup_get_stats_from_user
 import webio
 
-#################
 def cleanup():
     logging.info("The web page was closed - goodbye")
     exit(0)
 
-###############################
-def main():
-    session.set_env(title="bitcoin mining profit calculator")
 
-    t = threading.Thread(group=None, target=session.hold)
-    session.register_thread( t )
+def main():
+    pywebio.session.set_env(title="bitcoin mining profit calculator")
+
+    t = threading.Thread(group=None, target=pywebio.session.hold)
+    pywebio.session.register_thread( t )
     t.start()
-    session.defer_call(cleanup)
+    pywebio.session.defer_call(cleanup)
 
     webio.show_user_interface_elements()
     webio.refresh()
@@ -72,7 +65,7 @@ if __name__ == '__main__':
 
     # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
     # Also, this script won't exit when you close the webpage otherwise - probably something to do with the thread running session.hold()
-    start_server(main, port=8080, debug=True)
+    pywebio.start_server(main, port=8080, debug=True)
 
 
 # server = True
