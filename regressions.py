@@ -65,3 +65,24 @@ plt.scatter(x,y)
 #plot the regression
 plt.plot(x_reg,y_reg[0])
 plt.show()
+
+
+"""
+The way we project forward
+
+we will calculate the SMA and EMA of a past period
+
+We will then take the linreg of that sample and project forward a set number of months
+
+
+
+
+IF we need to cache data in a file:
+- try to load file
+- connect to node
+- verify file contents
+- continue filling in new data from data pulled from file
+-- save to file if new data
+- graph it
+- project and graph the new data
+"""

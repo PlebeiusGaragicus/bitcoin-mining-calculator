@@ -17,8 +17,11 @@ from pywebio import output
 import pandas as pd
 
 import config
-from luxor import LuxorAPI, LUXOR_ENDPOINT
+from constants import *
 from calcs import get_hashrate_from_difficulty
+from luxor import LuxorAPI, LUXOR_ENDPOINT
+import node
+import popups
 
 # try:
 #     # keep it secret... keep it safe
@@ -29,11 +32,6 @@ from calcs import get_hashrate_from_difficulty
 #     # we don't want to use the logging module here because it will init and run basicConfig()
 #     # we don't want that becuase you can only run basicConfig once and we do that in main()
 #     print("You don't seem to have a LUXOR api key.  That's ok")
-
-
-from constants import *
-import node
-import popups
 
 def download_bitcoin_network_data():
     """
@@ -52,19 +50,12 @@ def download_bitcoin_network_data():
 
     pin.pin[PIN_BTC_PRICE_NOW] = pin.pin[PIN_BOUGHTATPRICE] = p
 
-    load_success = False
-    config.node_path = node.useful_node()
-    if config.node_path != None:
-        load_success = node.get_stats_from_node()
-
-    if not load_success:
+    if not node.get_stats_from_node():
+        logging.debug("unable to get stats from node...")
         #if not get_stats_from_luxor():
         if not get_stats_from_internet():
             if not popups.popup_get_stats_from_user():
                 output.toast("Unable to get bitcoin network status")
-
-    if config.node_path == None:
-        output.put_info("No instance of local bitcoin node found or node is not fully synchronized - some functions limited.", closable=True, position=output.OutputPosition.TOP)
 
 ########################################
 # https://github.com/LuxorLabs/hashrateindex-api-python-client
@@ -223,16 +214,6 @@ def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> fl
     logging.debug(f"Average fee per block in last {nBlocks} blocks: {total_fee:,.0f}")
     return round(total_fee, 2)
 
-#################################
-def get_block_time(height: int) -> datetime:
-    if config.node_path != None:
-        # use the node, Luke!
-        pass
-    else:
-        raise NotImplementedError
-
-    return 0
-
 ############################
 def get_price() -> float:
     """
@@ -274,7 +255,8 @@ def query_bitcoinprice_luxor() -> float:
         # so let's just take the first and last price and average them, shall we?
         avg = (price[1]['open'] + price[-1]['open']) / 2
     except Exception as e:
-        logging.debug("", exc_info=True)
+        logging.debug(f"__func__ exception", exc_info=True)
+        # TODO return None instead on error
         return -1
 
     return avg
@@ -294,12 +276,11 @@ def query_bitcoinprice_coinbase() -> float:
         data = json.loads(response) # returns dict
         price = float( data['data']['amount'] )
     except Exception as e:
-        logging.debug("", exc_info=True)
+        logging.debug(f"__func__ exception", exc_info=True)
+        # TODO return None instead on error
         return -1
 
     return price
-
-
 
 
 

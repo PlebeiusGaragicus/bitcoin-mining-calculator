@@ -36,11 +36,86 @@ def refresh() -> None:
     enter_debug_values()
     update_numbers() # this is the callback function used to ensure all UI read_only fields are updated
 
-#######################
-def show_projection():
+###############################
+def make_projection() -> None:
     """
         THIS FUNCTION TAKES THE VALUES FROM THE INPUT FIELDS AND RUNS THE PROJECTION...
-        TODO - SANITIZE THE INPUTS!
+    """
+    output.toast("calculating...", color='warn', duration=1)
+    logging.info("running show_projection()")
+
+    months = get_entered_months()
+    height = get_entered_height()
+    avgfee = get_entered_fees()
+    hashrate = get_entered_hashrate()
+    wattage = get_entered_wattage()
+    price = get_entered_price()
+     # TODO figure out my strategy for this thang!!
+    price_when_bought = get_entered_bought_price()
+
+    pricegrow = float(pin.pin[PIN_PRICEGROW] / 100)
+    pricegrow2 = float(pin.pin[PIN_PRICEGROW2] / 100)
+    pricelag = int(pin.pin[PIN_LAG])
+    
+    diff = get_entered_difficulty()
+    hashgrow = float(pin.pin[PIN_HASHGROW] / 100)
+
+    kWh_rate = get_entered_rate()
+    opex = get_entered_opex()
+    capex = get_entered_machine_cost()
+    resell = get_entered_resell_percent()
+    poolfee = get_entered_poolfee()
+
+    if None in (months, height, avgfee, hashrate, wattage, price,
+                pricegrow, pricegrow2, pricelag, diff,
+                hashgrow, kWh_rate, opex, capex, resell, poolfee):
+        output.toast("Error - an input field was left blank (or is invalid)")
+        logging.error("None variable passed to calculate_projection()")
+        return
+
+    with output.use_scope('projection', clear=True):
+        output.put_markdown( "# PROJECTION SUMMARIES:" )
+
+    res = calcs.calculate_projection(
+        months = months,
+        height = height,
+        avgfee = avgfee,
+        hashrate = hashrate,
+        wattage = wattage,
+        price = price,
+        pricegrow = pricegrow,
+        pricegrow2 = pricegrow2,
+        pricelag = pricelag,
+        network_difficulty = diff,
+        hashgrow = hashgrow,
+        kWh_rate = kWh_rate,
+        opex = opex,
+        capex_in_sats = calcs.btc(capex, bitcoin_price=price_when_bought),
+        resale = resell,
+        poolfee = poolfee,
+    )
+
+    config.analysis_number += 1
+
+    table = calcs.make_table_string(res)
+    with output.use_scope("result"):
+        output.put_collapse(title=f"analysis #{config.analysis_number}", content=[
+            output.put_html( calcs.pretty_graph(res) ),
+            output.put_collapse("Monthly Breakdown Table", content=[
+            output.put_markdown( table ),
+            output.put_table(tdata=[[
+                    output.put_file('projection.csv', content=b'123,456,789'),
+                    output.put_text("<<-- Download results as CSV file")
+                ]])
+        ])
+        ], position=output.OutputPosition.TOP, open=True)
+
+    output.toast("done.", color='success', duration=1)
+
+#######################
+def show_projection() -> None:
+    """
+        This takes all the entered variables, runs an earnings projection and displays the results
     """
     output.toast("calculating...", color='warn', duration=1)
     logging.info("running show_projection()")
@@ -120,11 +195,11 @@ def show_user_interface_elements():
     output.put_markdown( MAIN_TEXT )
     output.put_collapse(title="TOOLS:", content=[
         output.put_button("fiat <-> bitcoin converter", onclick=popups.popup_currencyconverter, color='info'),
+        output.put_button("refresh data", onclick=refresh),
         output.put_button("break-even analysis", onclick=popups.popup_breakeven_analysis, color='info'),
         output.put_button("block fee analysis", onclick=popups.popup_fee_analysis),
         output.put_button("price history analysis", onclick=popups.popup_price_history),
-        output.put_button("hashrate history analysis", onclick=popups.popup_difficulty_history),
-        output.put_button("refresh data", onclick=refresh)
+        output.put_button("hashrate history analysis", onclick=popups.popup_difficulty_history)
     ])
 
     ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE
@@ -203,6 +278,7 @@ def show_user_interface_elements():
     #pin.pin_on_change(name=PIN_HASHGROW, onchange=hashgrow_waschanged)
 
     output.put_button( 'What might happen?', onclick=show_projection, color='danger' )
+    output.put_button( 'new button', onclick=make_projection, color='success' )
 
 
 ##################################
@@ -439,11 +515,15 @@ def update_price() -> None:
     """
     # this feature is only available when running a node that is NOT pruned
     #if config.node_path == None or config.pruned:
-    if config.node_path == None:
+    if config.node_path == None and config.RPC_enabled == False:
         return
 
     h = get_entered_height()
     if h == None:
+        return
+
+    if h < 365000:
+        output.toast("price data does not exist for block before 365000")
         return
 
     # a height in the future
@@ -464,6 +544,7 @@ def update_price() -> None:
     p = data.coinbase_fetch_price_history(unix, unix+86400)
     try:
         price = (p['open'][0] + p['close'][0]) / 2
+        logging.debug(f"{price=}")
         price = round(price, 2)
     except IndexError:
         output.toast(f"unable to load the price for block height {h}")
@@ -477,7 +558,7 @@ def update_price() -> None:
 ################################
 def update_timestamp() -> None:
     # this feature only works if you have a node
-    if config.node_path == None:
+    if config.node_path == None and config.RPC_enabled == False:
         return
 
     h = get_entered_height()
@@ -502,7 +583,7 @@ def update_timestamp() -> None:
 #################################
 def update_difficulty() -> None:
     # this feature only works if you have a node
-    if config.node_path == None:
+    if config.node_path == None and config.RPC_enabled == False:
         return
 
     h = get_entered_height()
@@ -550,7 +631,7 @@ def update_subsity() -> None:
 def update_hashrate() -> None:
     diff = get_entered_difficulty()
 
-    if None in (diff, 0): # this is lame... I am lame for writing this... but this make the code consistant... and it works... so buzz off
+    if diff == None: # this is lame... I am lame for writing this... but this make the code consistant... and it works... so buzz off
         pin.pin[PIN_NETWORKHASHRATE] = ''
         pin.pin_update(PIN_NETWORKHASHRATE, help_text=f'')
         return
@@ -732,7 +813,9 @@ def update_height( height ) -> None:
         #output.toast("ok, we're running a historial calculation!!!")
         output.toast("Using historical data") #, position=output.OutputPosition.TOP, scope='main')
         update_price()
-    
+        update_difficulty()
+        update_timestamp()
+
     update_numbers()
 
 ###############################################
@@ -743,8 +826,8 @@ def update_numbers( throw_away=None ) -> None:
             All input fields are always up-to-date with proper numbers
     """
 
-    update_timestamp()
-    update_difficulty()
+    #update_timestamp()
+    #update_difficulty()
     update_subsity()
     update_hashrate()
     update_hashvalue()
