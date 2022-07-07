@@ -32,9 +32,15 @@ def refresh() -> None:
     """
         This function is called (1) at startup and (2) when the "refresh data" button is pushed
     """
+    output.toast("refreshing network data...", color='info')
     data.download_bitcoin_network_data()
+    #pin.pin[PIN_BTC_PRICE_NOW] = config.price
+    #pin.pin[PIN_HEIGHT] = config.height
+    #pin.pin[PIN_NETWORKDIFFICULTY] = config.difficulty
     enter_debug_values()
+    update_timestamp()
     update_numbers() # this is the callback function used to ensure all UI read_only fields are updated
+    output.toast("refresh done", color='success')
 
 ###############################
 def make_projection() -> None:
@@ -567,6 +573,9 @@ def update_timestamp() -> None:
         pin.pin_update(PIN_HEIGHT, help_text='')
         return
 
+    if h > config.height:
+        return
+
     try:
         t = node.get_block_unix_time(h)
         t = datetime.datetime.fromtimestamp(t).isoformat(sep=' ', timespec='seconds')
@@ -589,6 +598,9 @@ def update_difficulty() -> None:
     h = get_entered_height()
 
     if h == None:
+        return
+
+    if h > config.height:
         return
 
     try:
@@ -813,8 +825,9 @@ def update_height( height ) -> None:
         #output.toast("ok, we're running a historial calculation!!!")
         output.toast("Using historical data") #, position=output.OutputPosition.TOP, scope='main')
         update_price()
-        update_difficulty()
-        update_timestamp()
+
+    update_difficulty()
+    update_timestamp()
 
     update_numbers()
 
