@@ -17,8 +17,11 @@ from pywebio import output
 import pandas as pd
 
 import config
-from luxor import LuxorAPI, LUXOR_ENDPOINT
+from constants import *
 from calcs import get_hashrate_from_difficulty
+from luxor import LuxorAPI, LUXOR_ENDPOINT
+import node
+import popups
 
 # try:
 #     # keep it secret... keep it safe
@@ -29,11 +32,6 @@ from calcs import get_hashrate_from_difficulty
 #     # we don't want to use the logging module here because it will init and run basicConfig()
 #     # we don't want that becuase you can only run basicConfig once and we do that in main()
 #     print("You don't seem to have a LUXOR api key.  That's ok")
-
-
-from constants import *
-import node
-import popups
 
 def download_bitcoin_network_data():
     """
@@ -52,19 +50,12 @@ def download_bitcoin_network_data():
 
     pin.pin[PIN_BTC_PRICE_NOW] = pin.pin[PIN_BOUGHTATPRICE] = p
 
-    load_success = False
-    config.node_path = node.useful_node()
-    if config.node_path != None:
-        load_success = node.get_stats_from_node()
-
-    if not load_success:
+    if not node.get_stats_from_node():
+        logging.debug("unable to get stats from node...")
         #if not get_stats_from_luxor():
         if not get_stats_from_internet():
             if not popups.popup_get_stats_from_user():
                 output.toast("Unable to get bitcoin network status")
-
-    if config.node_path == None:
-        output.put_info("No instance of local bitcoin node found or node is not fully synchronized - some functions limited.", closable=True, position=output.OutputPosition.TOP)
 
 ########################################
 # https://github.com/LuxorLabs/hashrateindex-api-python-client

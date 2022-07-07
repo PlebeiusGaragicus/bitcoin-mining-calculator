@@ -195,11 +195,11 @@ def show_user_interface_elements():
     output.put_markdown( MAIN_TEXT )
     output.put_collapse(title="TOOLS:", content=[
         output.put_button("fiat <-> bitcoin converter", onclick=popups.popup_currencyconverter, color='info'),
+        output.put_button("refresh data", onclick=refresh),
         output.put_button("break-even analysis", onclick=popups.popup_breakeven_analysis, color='info'),
         output.put_button("block fee analysis", onclick=popups.popup_fee_analysis),
         output.put_button("price history analysis", onclick=popups.popup_price_history),
-        output.put_button("hashrate history analysis", onclick=popups.popup_difficulty_history),
-        output.put_button("refresh data", onclick=refresh)
+        output.put_button("hashrate history analysis", onclick=popups.popup_difficulty_history)
     ])
 
     ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE ### NETWORK STATE
@@ -515,11 +515,15 @@ def update_price() -> None:
     """
     # this feature is only available when running a node that is NOT pruned
     #if config.node_path == None or config.pruned:
-    if config.node_path == None:
+    if config.node_path == None and config.RPC_enabled == False:
         return
 
     h = get_entered_height()
     if h == None:
+        return
+
+    if h < 365000:
+        output.toast("price data does not exist for block before 365000")
         return
 
     # a height in the future
@@ -540,6 +544,7 @@ def update_price() -> None:
     p = data.coinbase_fetch_price_history(unix, unix+86400)
     try:
         price = (p['open'][0] + p['close'][0]) / 2
+        logging.debug(f"{price=}")
         price = round(price, 2)
     except IndexError:
         output.toast(f"unable to load the price for block height {h}")
@@ -553,7 +558,7 @@ def update_price() -> None:
 ################################
 def update_timestamp() -> None:
     # this feature only works if you have a node
-    if config.node_path == None:
+    if config.node_path == None and config.RPC_enabled == False:
         return
 
     h = get_entered_height()
@@ -578,7 +583,7 @@ def update_timestamp() -> None:
 #################################
 def update_difficulty() -> None:
     # this feature only works if you have a node
-    if config.node_path == None:
+    if config.node_path == None and config.RPC_enabled == False:
         return
 
     h = get_entered_height()
@@ -626,7 +631,7 @@ def update_subsity() -> None:
 def update_hashrate() -> None:
     diff = get_entered_difficulty()
 
-    if None in (diff, 0): # this is lame... I am lame for writing this... but this make the code consistant... and it works... so buzz off
+    if diff == None: # this is lame... I am lame for writing this... but this make the code consistant... and it works... so buzz off
         pin.pin[PIN_NETWORKHASHRATE] = ''
         pin.pin_update(PIN_NETWORKHASHRATE, help_text=f'')
         return
@@ -808,7 +813,9 @@ def update_height( height ) -> None:
         #output.toast("ok, we're running a historial calculation!!!")
         output.toast("Using historical data") #, position=output.OutputPosition.TOP, scope='main')
         update_price()
-    
+        update_difficulty()
+        update_timestamp()
+
     update_numbers()
 
 ###############################################
@@ -819,8 +826,8 @@ def update_numbers( throw_away=None ) -> None:
             All input fields are always up-to-date with proper numbers
     """
 
-    update_timestamp()
-    update_difficulty()
+    #update_timestamp()
+    #update_difficulty()
     update_subsity()
     update_hashrate()
     update_hashvalue()

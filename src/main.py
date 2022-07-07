@@ -35,7 +35,7 @@ def main():
 if __name__ == '__main__':
     logginglevel = logging.INFO
     try:
-      opts, args = getopt.getopt(args=sys.argv[1:], shortopts="hdk:", longopts=['help', 'debug', 'key='])
+      opts, args = getopt.getopt(args=sys.argv[1:], shortopts="hdk:", longopts=['help', 'debug', 'key=', 'rpcip=', 'rpcuser='])
     except getopt.GetoptError as err:
         #logging.exception(err) # can't use this becuase basicConfig has not been called yet!!!
         print(err)
@@ -50,6 +50,10 @@ if __name__ == '__main__':
             logginglevel = logging.DEBUG
         elif opt in ("-k", "--key"):
             config.apikey = arg
+        elif opt == '--rpcip':
+            config.RPC_ip_port = arg
+        elif opt == '--rpcuser':
+            config.RPC_user_pass = arg
 
     log_format = "[%(levelname)s] %(message)s"
     if logginglevel == logging.DEBUG:
@@ -61,26 +65,17 @@ if __name__ == '__main__':
         handlers=[logging.StreamHandler(),
                   logging.FileHandler('debug.log', mode='w')])
 
-    logging.debug(f"Luxor API key: {config.apikey}")
+    if not None in (config.RPC_ip_port, config.RPC_user_pass):
+        config.RPC_enabled = True
+        logging.info(f"using supplied RPC ip/port of {config.RPC_ip_port}")
+        logging.info(f"using supplied RPC user/pass of {config.RPC_user_pass}")
+    else:
+        logging.error("You need to use both --rpcip and --rpcuser when calling script to enable RPC - QUITTING")
+        exit(1)
+
+    if config.apikey != None:
+        logging.info(f"Luxor API key: {config.apikey}")
 
     # I do it this way because if you're running it on your node over SSH the webpage won't automatically open
     # Also, this script won't exit when you close the webpage otherwise - probably something to do with the thread running session.hold()
     pywebio.start_server(main, port=8080, debug=True)
-
-
-# server = True
-# # we use a slice to skip argv[0] which is the path to this script
-# for arg in sys.argv[1:]:
-#     found = False
-#     if arg == '--help' or arg == '-h':
-#         print(CLI_HELP)
-#         exit(0)
-#     if arg == '--debug':
-#         found = True
-#         logginglevel = logging.DEBUG
-#     if arg == '--key':
-#         apikey = 
-#     if found == False:
-#         print(f"unknown parameter: {arg}\n")
-#         print(CLI_HELP)
-#         exit(1)

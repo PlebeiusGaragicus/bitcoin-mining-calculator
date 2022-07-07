@@ -7,6 +7,7 @@ If so, this module helps pull sweet, sweet datums from it.
 Mmmm, datums... <(O.o)>
 """
 
+from inspect import getblock
 import os
 import logging
 import json
@@ -18,13 +19,30 @@ from constants import *
 import config
 from calcs import get_hashrate_from_difficulty
 
-###################
-def useful_node():
-    """
-        returns path to bitcoin-cli if node is (1) found, (2) running, (3) up-to-date - not in IDB
-        returns None on error
-    """
+###########################
+def verify_node() -> bool:
 
+    if config.RPC_enabled:
+        if verify_RPC_node():
+            return True
+        else:
+            logging.error("RPC is enabled but the node is not valid")
+            return False
+
+    if verify_local_node():
+        return True
+    else:
+        logging.error("local node found is not valid")
+        return False
+
+##############################
+def find_local_node() -> str:
+    """
+        searches for bitcoin-cli or bitcoin-core.cli on local system
+
+        returns string as path to executable
+        returns None if unable to find
+    """
     bin_path = os.popen("which bitcoin-core.cli").read().strip('\n')
     if bin_path == '':
         bin_path = os.popen("which bitcoin-cli").read().strip('\n')
@@ -33,38 +51,46 @@ def useful_node():
             return None
 
     logging.info(f"bitcoin core found at: {bin_path}")
+    
+    return bin_path
+
+###################
+def verify_local_node() -> str:
+    """
+        returns path to bitcoin-cli if node is (1) found, (2) running, (3) up-to-date - not in IDB
+        returns None on error
+    """
+
+    bin_path = find_local_node()
 
     try:
         # https://developer.bitcoin.org/reference/rpc/getblockchaininfo.html
         node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo 2> /dev/null").read() ) # stderr is thrown away...
         #node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo").read() )
+        logging.info(f"getblockchaininfo: {node_info}")
 
         ibd = bool( node_info['initialblockdownload'] )
         logging.info(f"Node in Initial Block Download? {ibd}")
 
         pruned = bool( node_info['pruned'] )
         config.pruned = pruned
-        logging.info(f"Node is pruned? {pruned}")
+        logging.info(f"Node is pruned? {pruned=}")
 
         if pruned:
-            pruned_height = node_info['pruneheight']
-            config.pruned_height = pruned_height
-            logging.info(f"Node is pruned to block: {pruned_height}")
+            config.pruned_height = int(node_info['pruneheight'])
+            logging.info(f"Node is pruned to block: {config.pruned_height}")
 
         progress = float( node_info['verificationprogress'] )
-    except json.decoder.JSONDecodeError as e:
+    except json.decoder.JSONDecodeError:
         #logging.exception("Error running `getblockchaininfo`")
-        logging.warning("Your bitcoin node does not appear to be running.")
+        logging.error("Your bitcoin node does not appear to be running.")
         return None
-
-    logging.info(f"getblockchaininfo: {node_info}")
 
     if ibd == True:
         logging.error(f"ERROR: your node is currently downloading the blockchain, it is not fully synced yet ({float(progress * 100):.0f}% downloaded)")
         return None
 
     logging.info(f"This node appears up-to-date - we can use it!")
-
     return bin_path
 
 #######################################
@@ -75,26 +101,93 @@ def get_stats_from_node() -> bool:
 
         Returns True if successful, False on error
     """
+    if not verify_node():
+        return False
+
     try:
         h = getblockcount()
+        config.height = h
+
         diff = getdifficulty()
+        config.difficulty = diff
+
         nh = round(get_hashrate_from_difficulty(diff), 2)
         #nh = round((d * 2 ** 32) / 600 / TERAHASH, 2)
         #nh = node_networkhashps(path)
         #f = node_avgblockfee(path)
-
-        config.height = h
-        config.difficulty = diff
 
         pin.pin[PIN_HEIGHT] = h
         pin.pin[PIN_NETWORKDIFFICULTY] = diff
         #pin.pin[PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
         #pin.pin_update(PIN_NETWORKHASHRATE, help_text=f"{nh/MEGAHASH:.2f} EH/s")
         #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-    except Exception as e:
+    except Exception:
         logging.exception(f'__func__')
         return False
 
+    return True
+
+##########################################################
+def run_RPC_command(command: str, params=None) -> str:
+    """
+        note: run this in a try/except block becuase it may raise exception (json.decoder.JSONDecodeError)
+    """
+    if not config.RPC_enabled:
+        raise Exception(f"RPC is not enabled but get_RPC_command was called")
+
+    logging.debug(f"run_RPC_command({command}, {params})")
+
+    if params == None:
+        cmd = "curl -s --user {} -X POST http://{} --data-binary '{{\"jsonrpc\":\"1.0\",\"id\":\"miningcalcs<3\",\"method\":\"{}\"}}' -H 'Content-Type: application/json'".format(config.RPC_user_pass, config.RPC_ip_port, command, params)
+    else:
+        if type(params) == str:
+            cmd = "curl -s --user {} -X POST http://{} --data-binary '{{\"jsonrpc\":\"1.0\",\"id\":\"miningcalcs<3\",\"method\":\"{}\", \"params\": [ \"'{}'\" ]}}' -H 'Content-Type: application/json'".format(config.RPC_user_pass, config.RPC_ip_port, command, params)
+        else:
+            cmd = "curl -s --user {} -X POST http://{} --data-binary '{{\"jsonrpc\":\"1.0\",\"id\":\"miningcalcs<3\",\"method\":\"{}\", \"params\": [ '{}' ]}}' -H 'Content-Type: application/json'".format(config.RPC_user_pass, config.RPC_ip_port, command, params)
+
+    logging.debug(f"{cmd}")
+    result = json.loads( os.popen(cmd).read() )
+
+    logging.debug(f"got this: {result}") #TODO FIX THIS... actually returns ['result]
+    result = result['result']
+    logging.debug(f"returning: {result}") #TODO FIX THIS... actually returns ['result]
+    return result
+
+###############################
+def verify_RPC_node() -> bool:
+    """
+        TODO
+    """
+    # if not config.RPC_enabled:
+    #     raise Exception("WHAT THE FUCK YOU SHOULN'D HAVE CALLED THIS")
+    #cmd = get_RPC_command('getblockchaininfo')
+
+    try:
+        node_info = run_RPC_command('getblockchaininfo')
+        # TODO add "2> /dev/null"
+        #node_info = json.loads( os.popen(cmd).read() )['result']
+        logging.info(f"getblockchaininfo: {node_info}")
+
+        ibd = bool( node_info['initialblockdownload'] )
+        logging.info(f"Node in Initial Block Download? {ibd}")
+
+        pruned = bool( node_info["pruned"] )
+        config.pruned = pruned
+        logging.info(f"Node info: {pruned=}")
+
+        if pruned:
+            config.pruned_height = int(node_info['pruneheight'])
+            logging.info(f"Node is pruned to block: {config.pruned_height}")
+    except json.decoder.JSONDecodeError:
+        logging.error("Your bitcoin node does not appear to be running.")
+        return False
+
+    if ibd:
+        progress = float( node_info['verificationprogress'] )
+        logging.error(f"ERROR: your node is currently downloading the blockchain, it is not fully synced yet ({float(progress * 100):.0f}% downloaded)")
+        return None
+
+    logging.info(f"This node appears up-to-date - we can use it!")
     return True
 
 ########################################
@@ -103,12 +196,13 @@ def getblockcount() -> int:
         basically just runs the 'getblockcount' command
         https://developer.bitcoin.org/reference/rpc/getblockcount.html
     """
-    if config.node_path == None:
-        return None
+    if config.RPC_enabled:
+        return run_RPC_command('getblockcount')
 
-    ret = int(os.popen(f"{config.node_path} getblockcount").read())
-    # TODO sanitize???
-    return ret
+    if config.node_path != None:
+        return int(os.popen(f"{config.node_path} getblockcount").read())
+
+    raise Exception("getblockcount() called but no node is setup")
 
 ########################################
 def get_block_unix_time(height) -> int:
@@ -116,20 +210,21 @@ def get_block_unix_time(height) -> int:
         This returns a string with the formatted date of a block at a given height
         https://developer.bitcoin.org/reference/rpc/getblockstats.html
     """
-
-    if config.node_path == None:
-        return None
-
-    ret = os.popen(f"{config.node_path} getblockstats {height} '[\"time\"]'").read()
-    
     try:
-        ret = int(json.loads(ret)["time"])
+        if config.RPC_enabled:
+            ret = run_RPC_command('getblockstats', height) # we aren't going to give it the 'time' parameter becuase that's more shit to code... so just parse it out here
+            return int(ret['time'])
+
+        if config.node_path != None:
+            ret = os.popen(f"{config.node_path} getblockstats {height} '[\"time\"]'").read()
+            return int(json.loads(ret)["time"])
+
     except json.decoder.JSONDecodeError:
         # this will fail if the node is unable to return the block time (eg. pruned node)
         logging.debug("json decode error - are you running a pruned node?")
         return None
 
-    return ret
+    raise Exception("get_block_unix_time() called but no node is setup")
 
 ##############################################
 def getblockhash(height) -> str:
@@ -137,68 +232,85 @@ def getblockhash(height) -> str:
         basically just runs the 'getblockhash' command
         https://developer.bitcoin.org/reference/rpc/getblockhash.html
     """
-    if config.node_path == None:
-        return None
-
     logging.debug(f"getblockhash({height})")
 
-    ret = os.popen(f"{config.node_path} getblockhash {height}").read()
-    #TODO sanitize ret?  hmmmmmmmmmmm
-    
-    logging.debug(f"returning {ret}")
-    return ret
+    if config.RPC_enabled:
+        ret = run_RPC_command('getblockhash', height)
+        return ret
 
+    if config.node_path != None:
+        return os.popen(f"{config.node_path} getblockhash {height}").read()
 
-# TODO - use -1 for nblocks to go since last diff change
+    raise Exception("get_block_unix_time() called but no node is setup")
+    # return None ??? instead of throwing an error?
+
+# # TODO - use -1 for nblocks to go since last diff change
+# ####################################################################
+# def getnetworkhashps(nblocks=120, height=-1) -> float:
+#     """
+#         basically just runs the 'getnetworkhashps' command
+#         https://developer.bitcoin.org/reference/rpc/getnetworkhashps.html
+#     """
+#     if config.node_path == None:
+#         return None
+
+#     nh = os.popen(f"{config.node_path} getnetworkhashps {nblocks} {height}").read()
+
+#     #TODO sanitize????????
+#     return float( nh.split('\n')[0] ) / TERAHASH
+
 ####################################################################
-def getnetworkhashps(nblocks=120, height=-1) -> float:
-    """
-        basically just runs the 'getnetworkhashps' command
-        https://developer.bitcoin.org/reference/rpc/getnetworkhashps.html
-    """
-    if config.node_path == None:
-        return None
-
-    nh = os.popen(f"{config.node_path} getnetworkhashps {nblocks} {height}").read()
-
-    #TODO sanitize????????
-    return float( nh.split('\n')[0] ) / TERAHASH
-
-####################################################################
-def getdifficulty(height=None) -> float:
+def getdifficulty(height: int=None) -> float:
     """
         basically just runs the 'getdifficulty' command
         https://developer.bitcoin.org/reference/rpc/getdifficulty.html
     """
-    if config.node_path == None:
-        return None
+    logging.debug(f"getdifficulty({height=})")
 
-    logging.debug(f"getdifficulty({height})")
-
+    # this returns the current difficulty
     if height == None:
-        diff = os.popen(f"{config.node_path} getdifficulty").read()
-        diff = float( diff.split('\n')[0] )
-        logging.debug(f"returning {diff}")
-        return diff
+        if config.RPC_enabled:
+            diff = float(run_RPC_command("getdifficulty"))
+            logging.debug(f"returning {diff}")
+            return diff
+
+        if config.node_path != None:
+            diff = os.popen(f"{config.node_path} getdifficulty").read()
+            diff = float( diff.split('\n')[0] ) # WHAT THE HELL IS THIS FOR?  TO GET RID OF THE NEWLINE?  hmm. otherwise float cast will fail?
+            logging.debug(f"returning {diff}")
+            return diff
+        
+        raise Exception("getdifficulty() called but no node is setup")
 
     if height > config.height or height < 0:
         return None
 
+    # if a height is given we use getblockheader to find the difficulty at that block
+    # first, we need the block hash
     hash = getblockhash(height)
     if hash == None:
         return None
 
-    diff = os.popen(f"{config.node_path} getblockheader {hash}").read()
-
-    try:
-        diff = float(json.loads(diff)["difficulty"])
+    if config.RPC_enabled:
+        diff = run_RPC_command("getblockheader", hash)
+        diff = float(diff['difficulty'])
         logging.debug(f"returning {diff}")
         return diff
-    except json.decoder.JSONDecodeError:
-        # this will fail if the node is unable to return the block time (eg. pruned node)
-        logging.debug("json decode error - are you running a pruned node?")
-        return None
 
+    if config.node_path != None:
+        diff = os.popen(f"{config.node_path} getblockheader {hash}").read()
+
+        try:
+            diff = float(json.loads(diff)["difficulty"])
+            logging.debug(f"returning {diff}")
+            return diff
+        except json.decoder.JSONDecodeError:
+            # this will fail if the node is unable to return the block time (eg. pruned node)
+            logging.debug("json decode error - are you running a pruned node?")
+            # TODO what about a pruned node over RPC... we're not catching that possibility in this code... darn-it!
+            return None
+
+    raise Exception("getdifficulty() called but no node is setup")
 
 ###########################################################################
 def avgerage_block_fee(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> int:

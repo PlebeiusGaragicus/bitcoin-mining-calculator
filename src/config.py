@@ -8,6 +8,10 @@ node_path = None
 pruned = None
 pruned_height = None
 
+RPC_enabled = None
+RPC_ip_port = None
+RPC_user_pass = None
+
 height = None
 difficulty = None
 price = None
