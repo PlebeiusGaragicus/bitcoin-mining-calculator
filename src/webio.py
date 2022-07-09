@@ -662,9 +662,13 @@ def update_hashvalue() -> None:
         pin.pin[PIN_HASHVALUE] = ''
         return
 
-    nh = round(calcs.get_hashrate_from_difficulty(diff), 2)
-    reward = calcs.block_subsity( height ) + fees
-    r = reward / nh * EXPECTED_BLOCKS_PER_DAY
+    try:
+        nh = round(calcs.get_hashrate_from_difficulty(diff), 2)
+        reward = calcs.block_subsity( height ) + fees
+        r = reward / nh * EXPECTED_BLOCKS_PER_DAY
+    except ZeroDivisionError:
+        pin.pin[PIN_HASHVALUE] = ''
+        return
 
     pin.pin[PIN_HASHVALUE] = f"{r:,.1f} sats"
 

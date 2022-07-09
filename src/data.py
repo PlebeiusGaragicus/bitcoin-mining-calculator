@@ -6,7 +6,7 @@ This module gets bitcoin network data from the internets if you don't have a bit
 """
 
 import requests
-import datetime
+#import datetime
 import logging
 import json
 import urllib.request as ur
@@ -17,7 +17,7 @@ from pywebio import output
 import pandas as pd
 
 import config
-from constants import *
+import constants as c
 from calcs import get_hashrate_from_difficulty
 from luxor import LuxorAPI, LUXOR_ENDPOINT
 import node
@@ -48,7 +48,7 @@ def download_bitcoin_network_data():
     else:
         logging.info(f"Bitcoin price: ${p:,.2f}")
 
-    pin.pin[PIN_BTC_PRICE_NOW] = pin.pin[PIN_BOUGHTATPRICE] = p
+    pin.pin[c.PIN_BTC_PRICE_NOW] = pin.pin[c.PIN_BOUGHTATPRICE] = p
 
     if not node.get_stats_from_node():
         logging.debug("unable to get stats from node...")
@@ -97,8 +97,8 @@ def get_stats_from_luxor() -> bool:
         output.toast("Could not download network status.", color='error', duration=4)
         return False
 
-    pin.pin[PIN_HEIGHT] = 0 # luxor does not provide the height
-    pin.pin[PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
+    pin.pin[c.PIN_HEIGHT] = 0 # luxor does not provide the height
+    pin.pin[c.PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
     #pin.pin[PIN_NETWORKHASHRATE] = 0
     #pin.pin[PIN_AVERAGEFEE] = 0
     #pin.pin[PIN_BOUGHTATPRICE] = 0
@@ -156,12 +156,12 @@ def get_stats_from_internet() -> bool:
     config.difficulty = diff
     # pin.pin[PIN_BTC_PRICE_NOW] = p
     # pin.pin[PIN_BOUGHTATPRICE] = p
-    pin.pin[PIN_HEIGHT] = h
+    pin.pin[c.PIN_HEIGHT] = h
     #pin.pin[PIN_AVERAGEFEE] = f
     #pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
-    pin.pin[PIN_NETWORKDIFFICULTY] = diff
-    pin.pin[PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
-    pin.pin_update(PIN_NETWORKHASHRATE, help_text=f"{nh/MEGAHASH:.2f} EH/s")
+    pin.pin[c.PIN_NETWORKDIFFICULTY] = diff
+    pin.pin[c.PIN_NETWORKHASHRATE] = f"{nh:,} TH/s"
+    pin.pin_update(c.PIN_NETWORKHASHRATE, help_text=f"{nh/c.MEGAHASH:.2f} EH/s")
 
     return True
 
@@ -169,7 +169,7 @@ def get_stats_from_internet() -> bool:
 # https://www.blockchain.com/api/blockchain_api
 # https://blockchain.info/rawblock/<block_hash> _OR_ https://blockchain.info/rawblock/<block_hash>?format=hex
 # TODO I think we are off by one during countdown
-def get_average_block_fee_from_internet(nBlocks = EXPECTED_BLOCKS_PER_DAY) -> float:
+def get_average_block_fee_from_internet(nBlocks = c.EXPECTED_BLOCKS_PER_DAY) -> float:
     try:
         latest_hash = str(ur.urlopen(ur.Request('https://blockchain.info/q/latesthash')).read(),'utf-8')
         blockheight = int(str(ur.urlopen(ur.Request(f'https://blockchain.info/rawblock/{latest_hash}')).read()).split('"height":')[1].split(',')[0])

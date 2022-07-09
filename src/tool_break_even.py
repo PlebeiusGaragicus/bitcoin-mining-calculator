@@ -15,7 +15,7 @@ from pywebio import start_server
 import urllib.request as ur
 
 from constants import *
-from nodes import *
+from node import *
 from data import *
 from calcs import *
 

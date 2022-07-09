@@ -5,9 +5,6 @@ cat block_clock.sh
 #   - brew install jq
 #   - brew install coreutils
 
-# standing on the shoulders of giants... <3 <3
-# https://gist.github.com/todu/1155780
-
 clear
 
 path=$(which bitcoin-core.cli)
