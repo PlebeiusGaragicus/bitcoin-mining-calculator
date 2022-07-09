@@ -1,7 +1,7 @@
 # activate the python virtual environment
-#. ./venv/bin/activate
-BASEDIR=$(dirname "$0")
-. $BASEDIR/venv/bin/activate
+. ./venv/bin/activate
+#BASEDIR=$(dirname "$0")
+#. $BASEDIR/venv/bin/activate
 #. $PWD/venv/bin/activate
 
 # look for Luxor API key
