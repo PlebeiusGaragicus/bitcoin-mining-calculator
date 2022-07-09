@@ -22,7 +22,7 @@ make
 
 ### run bitcoind
 ```sh
-./src/bitcoind —data-dir
+./src/bitcoind
 ```
 
 # INSTALL THIS CALCULATOR
@@ -44,4 +44,12 @@ pip install -r requirements.txt
 
 ## run - with a bitcoin node on the same network
 ```sh
+./run_calculator.sh --rpcip=<YOUR.UP.RIGHT.HERE:8332> --rpcuser=<USERNAME:PASSWORD>
+```
+
+#### run demo
+```sh
+# run bitcoind
+/Users/PlebeiusG/Desktop/bitcoin/src/bitcoind -datadir="/Volumes/core-mobile/bitcoin"
+/Users/PlebeiusG/Desktop/bitcoin-mining-calculator/run_calculator.sh --debug
 ```
