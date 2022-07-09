@@ -7,7 +7,6 @@ This module contains the functions for all the cool popups ;)
 
 import threading
 import logging
-from pyparsing import col
 
 from pywebio import pin
 from pywebio import output

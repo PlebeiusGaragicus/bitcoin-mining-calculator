@@ -69,9 +69,6 @@ if __name__ == '__main__':
         config.RPC_enabled = True
         logging.info(f"using supplied RPC ip/port of {config.RPC_ip_port}")
         logging.info(f"using supplied RPC user/pass of {config.RPC_user_pass}")
-    else:
-        logging.error("You need to use both --rpcip and --rpcuser when calling script to enable RPC - QUITTING")
-        exit(1)
 
     if config.apikey != None:
         logging.info(f"Luxor API key: {config.apikey}")
