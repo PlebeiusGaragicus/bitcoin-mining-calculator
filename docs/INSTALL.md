@@ -50,6 +50,7 @@ pip install -r requirements.txt
 #### run demo
 ```sh
 # run bitcoind
-/Users/PlebeiusG/Desktop/bitcoin/src/bitcoind -datadir="/Volumes/core-mobile/bitcoin"
-/Users/PlebeiusG/Desktop/bitcoin-mining-calculator/run_calculator.sh --debug
+/Users/PlebeiusG/Desktop/bitcoin/src/bitcoind -datadir="/Volumes/core-mobile/bitcoin" 1> /dev/null &
+/Users/PlebeiusG/Desktop/bitcoin-mining-calculator/run_calculator.sh --debug &
+open -a safari http://172.20.10.4:8080/
 ```
