@@ -72,6 +72,11 @@ if __name__ == '__main__':
         handlers=[logging.StreamHandler(),
                   logging.FileHandler('debug.log', mode='w')])
 
+    if not None in (config.RPC_ip_port, config.RPC_user_pass):
+        config.RPC_enabled = True
+        logging.info(f"using supplied RPC ip/port of {config.RPC_ip_port}")
+        logging.info(f"using supplied RPC user/pass of {config.RPC_user_pass}")
+
     if config.apikey != None:
         logging.info(f"Luxor API key: {config.apikey}")
 
