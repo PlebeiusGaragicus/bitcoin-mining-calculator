@@ -12,6 +12,8 @@ RPC_enabled = None
 RPC_ip_port = None
 RPC_user_pass = None
 
+cookie=None
+
 # TODO change these to 0, not none.  Init to a safe state that won't cause an error when the user tinkers with the input fields before loading state from the network completes.
 height = None
 difficulty = None

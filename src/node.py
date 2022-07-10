@@ -65,7 +65,10 @@ def verify_local_node() -> str:
 
     try:
         # https://developer.bitcoin.org/reference/rpc/getblockchaininfo.html
-        node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo 2> /dev/null").read() ) # stderr is thrown away...
+        #node_info = json.loads( os.popen(f"{bin_path} --rpcuser=__cookie__ --rpcpassword={config.cookie} getblockchaininfo 2> /dev/null").read() ) # stderr is thrown away...
+        #resp = os.popen(f"{bin_path} --rpcuser=__cookie__ --rpcpassword={config.cookie} getblockchaininfo 2> /dev/null").read()
+        resp = os.popen(f"{bin_path} getblockchaininfo 2> /dev/null").read()
+        node_info = json.loads( resp ) # stderr is thrown away...
         #node_info = json.loads( os.popen(f"{bin_path} getblockchaininfo").read() )
         logging.info(f"getblockchaininfo: {node_info}")
 

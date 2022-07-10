@@ -530,6 +530,7 @@ def update_price() -> None:
 
     if h < 365000:
         output.toast("price data does not exist for block before 365000")
+        pin.pin_update(PIN_BTC_PRICE_NOW, value=0)
         return
 
     # a height in the future
@@ -825,7 +826,8 @@ def update_height( height ) -> None:
         return
 
     # only try to update the price if we're going at least one day back
-    if h < (config.height - 144):
+    #if h < (config.height - 144):
+    if h < config.height:
         #output.toast("ok, we're running a historial calculation!!!")
         output.toast("Using historical data") #, position=output.OutputPosition.TOP, scope='main')
         update_price()
