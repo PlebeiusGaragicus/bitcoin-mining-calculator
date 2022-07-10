@@ -16,10 +16,12 @@ from plotly.subplots import make_subplots
 #from plotly.graph_objects import make_subplots
 import pandas as pd
 
+import config
 from constants import *
-from calcs import block_subsity
-from data import *
+import calcs
+import data
 import node
+import luxor
 import webio
 
 #########################################################################
@@ -147,7 +149,7 @@ def popup_currencyconverter():
         This popup allows you to convert from fiat to bitcoin and back
     """
     def updateprice():
-        pin.pin['convertprice'] = get_price() # query_bitcoinprice()
+        pin.pin['convertprice'] = data.get_price() # query_bitcoinprice()
 
     def convert_to_sat():
         try:
@@ -155,7 +157,7 @@ def popup_currencyconverter():
             price = float(pin.pin["convertprice"])
             if amnt < 0 or price < 0:
                 return
-        except Exception as e:
+        except Exception:
             logging.debug("", exc_info=True)
             return
         r = float(ONE_HUNDRED_MILLION * (amnt / price))
@@ -176,7 +178,7 @@ def popup_currencyconverter():
     output.popup('USD - BTC converter', content=[
         output.put_row(content=[
             output.put_column(content=[
-                pin.put_input("convertprice", type="float", label="Price of bitcoin:", value=get_price()),
+                pin.put_input("convertprice", type="float", label="Price of bitcoin:", value=config.price),
                 output.put_button("refresh price", onclick=updateprice)
                 ]),
             output.put_column(content=[
@@ -201,7 +203,7 @@ def popup_fee_analysis():
     if config.node_path != None:
         f = node.average_block_fee(config.node_path)
     else:
-        f = get_average_block_fee_from_internet()
+        f = data.get_average_block_fee_from_internet()
 
     pin.pin[PIN_AVERAGEFEE] = f
     pin.pin_update(name=PIN_AVERAGEFEE, help_text=f"= {f / ONE_HUNDRED_MILLION:.2f} bitcoin")
@@ -213,7 +215,7 @@ def popup_price_history():
         This is the popup that shows the price history of bitcoin
     """
 
-    price_df = get_luxor_price_as_df()
+    price_df = data.get_luxor_price_as_df()
 
     if price_df == None:
         output.toast("Error getting price data from Luxor", color='error')
@@ -242,7 +244,7 @@ def popup_difficulty_history():
         output.toast("Luxor API key is not supplied", color='error')
         return
 
-    lux = LuxorAPI(host=LUXOR_ENDPOINT, method='POST', key=config.apikey)
+    lux = luxor.LuxorAPI(host=luxor.LUXOR_ENDPOINT, method='POST', key=config.apikey)
 
     dhx = lux.get_network_difficulty("_1_YEAR")['data']['getChartBySlug']['data']
     nh = lux.get_network_hashrate("_1_YEAR")['data']['getNetworkHashrate']['nodes']
@@ -306,7 +308,7 @@ def popup_breakeven_analysis():
         price_satoshi = price / ONE_HUNDRED_MILLION
 
         try:
-            reward = block_subsity(height) + blocktxfee
+            reward = calcs.block_subsity(height) + blocktxfee
             be_nh = (reward * hashrate * (1 - poolfee) * price_satoshi * 6000) / (rate * wattage)
             be_nh /= MEGAHASH # turn TH/s -> EH/s
             be_p = ONE_HUNDRED_MILLION * ((nh * rate * wattage) / (reward * hashrate * (1 - poolfee) * 6000))
@@ -323,7 +325,7 @@ def popup_breakeven_analysis():
     # THIS IS A CALLBACK FOR THE BELOW
     #########################
     def height_waschanged(h):
-        pin.pin['be_subsidy'] = f"{block_subsity(h):,}"
+        pin.pin['be_subsidy'] = f"{calcs.block_subsity(h):,}"
         update_break_even(None)
 
     try:
@@ -331,7 +333,7 @@ def popup_breakeven_analysis():
         #height = int(ur.urlopen(ur.Request('https://blockchain.info/q/getblockcount')).read())
         #price =  int(float(ur.urlopen(ur.Request('https://blockchain.info/q/24hrprice')).read()))
         #nh = pin.pin[PIN_NETWORKHASHRATE]
-        nh = f"{get_hashrate_from_difficulty( pin.pin[PIN_NETWORKDIFFICULTY]/MEGAHASH ):.2f}"
+        nh = f"{data.get_hashrate_from_difficulty( pin.pin[PIN_NETWORKDIFFICULTY]/MEGAHASH ):.2f}"
         height = pin.pin[PIN_HEIGHT]
         price = pin.pin[PIN_BTC_PRICE_NOW]
     except Exception as e:
@@ -352,7 +354,7 @@ def popup_breakeven_analysis():
 
             output.put_table(tdata=[[
                 pin.put_input(name='be_height', type='float', label="block height", value=height),
-                pin.put_input(name='be_subsidy', type='text', label="current block subsidy", value=f"{block_subsity(height):,}", readonly=True),
+                pin.put_input(name='be_subsidy', type='text', label="current block subsidy", value=f"{calcs.block_subsity(height):,}", readonly=True),
                 pin.put_input(name='be_blocktxfee', type='float', label="Average block fees", value=pin.pin[PIN_AVERAGEFEE])
             ]])
             pin.pin_on_change('be_height', onchange=height_waschanged)
