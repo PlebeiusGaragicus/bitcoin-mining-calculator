@@ -4,6 +4,7 @@
 This is the main module that you run
 """
 
+import os
 import sys
 import getopt
 import threading
@@ -35,10 +36,11 @@ def main():
 ###########################
 if __name__ == '__main__':
     logginglevel = logging.INFO
+    print(sys.argv[:1])
     try:
       #opts, args = getopt.getopt(args=sys.argv[1:], shortopts="hdk:", longopts=['help', 'debug', 'key=', 'rpcip=', 'rpcuser='])
       #opts, args = getopt.getopt(args=sys.argv[1:], shortopts='', longopts=['help', 'debug', 'key=', 'rpcip=', 'rpcuser='])
-      opts, args = getopt.getopt(args=sys.argv[1:], shortopts='', longopts=['help', 'debug', 'key=', 'rpcip=', 'rpcuser='])
+      opts, args = getopt.getopt(args=sys.argv[1:], shortopts='', longopts=['help', 'debug', 'luxor=', 'rpcip=', 'rpcuser=', 'local='])
     except getopt.GetoptError as err:
         #logging.exception(err) # can't use this becuase basicConfig has not been called yet!!!
         print(err)
@@ -53,8 +55,14 @@ if __name__ == '__main__':
         #elif opt in ("-d", "--debug"):
         elif opt == '--debug':
             logginglevel = logging.DEBUG
+        elif opt == '--local':
+            #try to load cookie
+            cookie = os.popen(f"cat {arg}/.cookie").read()
+            cookie = cookie.split(':')
+            config.cookie = cookie[1]
+            print(f"cookie: {cookie}")
         #elif opt in ("-k", "--key"):
-        elif opt == '--key':
+        elif opt == '--luxor':
             config.apikey = arg
         elif opt == '--rpcip':
             config.RPC_ip_port = arg
